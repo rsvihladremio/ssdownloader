@@ -1,7 +1,7 @@
-# ssdownloader
-
 ![build](https://github.com/rsvihladremio/ssdownloader/actions/workflows/checkin.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rsvihladremio/ssdownloader)](https://goreportcard.com/report/github.com/rsvihladremio/ssdownloader)
+
+# ssdownloader
 
 send safely downloader that integrates with zendesk
 
