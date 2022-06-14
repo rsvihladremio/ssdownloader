@@ -65,9 +65,11 @@ ssdownloader init
 				}
 			}
 			configFile := filepath.Join(home, ".ssdownloader")
-			file, err := os.Create(configFile)
+			// best security practice
+			cleanedConfigFile := filepath.Clean(configFile)
+			file, err := os.Create(cleanedConfigFile)
 			if err != nil {
-				log.Fatalf("unable to create configuration file with error '%v' for configuration file '%v'", err, configFile)
+				log.Fatalf("unable to create configuration file with error '%v' for configuration file '%v'", err, cleanedConfigFile)
 			}
 			defer func() {
 				if err = file.Close(); err != nil {
