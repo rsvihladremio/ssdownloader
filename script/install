@@ -10,3 +10,6 @@ unzip main.zip
 cd ssdownloader-main 
 ./script/build
 sudo cp ./bin/ssdownloader /usr/local/bin
+cd ..
+rm -fr ssdownloader-main 
+rm boostrap
