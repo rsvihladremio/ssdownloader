@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# script/test: Run test suite for application.
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+[ -z "$DEBUG" ] || set -x
+
+go test -v ./...

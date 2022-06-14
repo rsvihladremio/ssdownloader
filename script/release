@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# script/release: build binaries in all supported platforms and upload them with the gh client
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+echo "Cleaning bin folder…"
+date "+%H:%M:%S"
+./script/clean
+
+echo "Building linux-amd64…"
+date "+%H:%M:%S"
+GOOS=linux GOARCH=amd64 go build -o ./bin/ssdownloader
+zip ./bin/ssdownloader-linux-amd64.zip ./bin/ssdownloader
+echo "Building linux-arm64…"
+date "+%H:%M:%S"
+GOOS=linux GOARCH=arm64 go build -o ./bin/ssdownloader
+zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader
+echo "Building darwin-os-x-amd64…"
+date "+%H:%M:%S"
+GOOS=darwin GOARCH=amd64 go build -o ./bin/ssdownloader
+zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader
+echo "Building darwin-os-x-arm64…"
+date "+%H:%M:%S"
+GOOS=darwin GOARCH=arm64 go build -o ./bin/ssdownloader
+zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader
+echo "Building windows-amd64…"
+date "+%H:%M:%S"
+GOOS=windows GOARCH=amd64 go build -o ./bin/ssdownloader.exe
+zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader.exe

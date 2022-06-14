@@ -1,1 +1,8 @@
+#!/bin/sh
+
+# script/build: build binary 
+set -e
+
+cd "$(dirname "$0")/.."
+
 go build -o ./bin/ssdownloader

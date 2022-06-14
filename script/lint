@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# script/lint: Run gofmt and golangci-lint run
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+gofmt -l -s -w  .
+
+golangci-lint run -v

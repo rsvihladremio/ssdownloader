@@ -7,7 +7,7 @@ send safely downloader that integrates with zendesk
 On Linux, Mac or WSL do the following:
 
 ```sh
-./script/install
+curl -sSfL https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install | sh 
 ```
 
 ## FAQ

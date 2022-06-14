@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# script/install: Script to install from source, eventually when there 
+#                 are releases this will switch to latest release
+
+curl -L -o bootstrap https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/bootstrap
+sh ./bootstrap
+curl -L -o main.zip https://github.com/rsvihladremio/ssdownloader/archive/refs/heads/main.zip
+unzip main.zip
+cd ssdownloader-main 
+./script/build
+sudo cp ./bin/ssdownloader /usr/local/bin
