@@ -35,7 +35,7 @@ func TestParsing(t *testing.T) {
 		],
 		"files": [
 		  {
-			"id": "abcfile"
+			"fileId": "abcfile"
 		  }
 		],
 		"directories": [
@@ -69,14 +69,14 @@ func TestParsing(t *testing.T) {
 		t.Errorf("unexpected package code %v", p.PackageCode)
 	}
 
-	lenFileIds := len(p.FileIds)
+	lenFileIds := len(p.Files)
 	if lenFileIds != 1 {
 		t.Errorf("was expected 1 element but found %v", lenFileIds)
 	}
 
 	if lenFileIds > 0 {
-		if p.FileIds[0] != "abcfile" {
-			t.Errorf("was expected abcfile but found %v", p.FileIds[0])
+		if p.Files[0].FileId != "abcfile" {
+			t.Errorf("was expected abcfile but found %v", p.Files[0].FileId)
 		}
 	}
 

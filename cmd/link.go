@@ -23,8 +23,13 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
+	"github.com/rsvihladremio/ssdownloader/link"
+	"github.com/rsvihladremio/ssdownloader/sendsafely"
 )
 
 // linkCmd represents the link command
@@ -37,21 +42,31 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("link called")
+		ssApiKey := fmt.Sprintf("%v", viper.Get("ss-api-key"))
+		ssApiSecret := fmt.Sprintf("%v", viper.Get("ss-api-secret"))
+		if ssApiKey == "" {
+			log.Fatalf("ss-api-key is not set and this is required")
+		}
+		if ssApiSecret == "" {
+			log.Fatalf("ss-api-secret is not set and this is required")
+		}
+		ssClient := sendsafely.NewSendSafelyClient(ssApiKey, ssApiSecret)
+		url := args[0]
+		linkParts, err := link.ParseLink(url)
+		if err != nil {
+			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
+		}
+		packageId := linkParts.PackageCode
+		p, err := ssClient.RetrievePackgeById(packageId)
+		if err != nil {
+			log.Fatalf("unexpected error '%v' retrieving packageId '%v'", err, packageId)
+		}
+		log.Printf("%v", p)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(linkCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// linkCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// linkCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

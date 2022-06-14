@@ -7,13 +7,26 @@ import (
 	"github.com/valyala/fastjson"
 )
 
+// SendSafelyFile are curious as near as they do not match the SendSafely documentation for what a package returns
+// This was discovered by returning the values
+type SendSafelyFile struct {
+	FileId          string
+	FileName        string
+	FileSize        int64
+	Parts           int64
+	FileUploaded    time.Time
+	FileUploadedStr string
+	FileVersion     string
+	CreatedByEmail  string
+}
+
 // SendSafelyPackage is the struct we need that maps to the fields here:
 // https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation
 // this is intentionally not complete as we do nto need all the fields
 type SendSafelyPackage struct {
 	PackageId        string
 	PackageCode      string
-	FileIds          []string
+	Files            []SendSafelyFile
 	DirectoryIds     []string
 	State            string
 	PackageTimestamp time.Time
@@ -54,7 +67,7 @@ func missingFieldError(fieldName, jsonBody string) error {
 //    }
 //  ],
 //  "files": [
-//    {
+//    { //NOTE THIS IS NOTHING LIKE WHAT IT RETURNS
 //      "id": "string"
 //    }
 //  ],
@@ -99,16 +112,19 @@ func ParsePackage(packageJson string) (SendSafelyPackage, error) {
 	ssp.PackageCode = string(packageCode.GetStringBytes())
 
 	// looping through the id values for files
-	var fileIds []string
+	var fileIds []SendSafelyFile
 	filesArray := v.GetArray("files")
 	for i, e := range filesArray {
-		fileElement := e.Get("id")
+		//TODO need to pull the rest of the File
+		fileElement := e.Get("fileId")
 		if !fileElement.Exists() {
-			return SendSafelyPackage{}, fmt.Errorf("missing id in the %v element of the files array (indexed at 1)", i+1)
+			return SendSafelyPackage{}, fmt.Errorf("missing id in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
 		}
-		fileIds = append(fileIds, string(fileElement.GetStringBytes()))
+		fileIds = append(fileIds, SendSafelyFile{
+			FileId: string(fileElement.GetStringBytes()),
+		})
 	}
-	ssp.FileIds = fileIds
+	ssp.Files = fileIds
 
 	// looping through the id values for directories
 	var directoryIds []string
@@ -138,7 +154,7 @@ func ParsePackage(packageJson string) (SendSafelyPackage, error) {
 	rawTimestamp := packageTimestamp.GetStringBytes()
 	// the format is rather curious but this is what sendsafely is providing, I can find no standard that matches this
 	// example "Feb 1, 2019 2:07:28 PM"
-	ts, err := time.Parse("Jan 2, 2006 3:04:05 PM", string(rawTimestamp))
+	ts, err := time.Parse(DATE_FMT, string(rawTimestamp))
 	if err != nil {
 		return SendSafelyPackage{}, fmt.Errorf("unparseable packageTimestamp '%v'", err)
 	}
@@ -152,3 +168,5 @@ func ParsePackage(packageJson string) (SendSafelyPackage, error) {
 	ssp.Response = string(response.GetStringBytes())
 	return ssp, nil
 }
+
+const DATE_FMT = "Jan 2, 2006 3:04:05 PM"

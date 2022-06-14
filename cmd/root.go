@@ -68,6 +68,7 @@ func init() {
 	zendeskDomain = rootCmd.PersistentFlags().String("zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
 	zendeskEmail = rootCmd.PersistentFlags().String("zendesk-email", "", "zendesk email address")
 	zendeskToken = rootCmd.PersistentFlags().String("zendesk-token", "", "zendesk api token")
+
 }
 
 // initConfig reads in config file and ENV variables if set.
