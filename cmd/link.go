@@ -34,14 +34,12 @@ import (
 
 // linkCmd represents the link command
 var linkCmd = &cobra.Command{
-	Use:   "link",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "link <sendsafely package link>",
+	Short: "link command downloads all files in a package provided by a url from sendsafely",
+	Long: `link command downloads all files in a package provided by a url from sendsafely. Example below:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	ssdownloader link "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
+`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		ssApiKey := fmt.Sprintf("%v", viper.Get("ss-api-key"))

@@ -3,7 +3,7 @@ package link
 import "testing"
 
 func TestLinkHandler(t *testing.T) {
-	url := "https://sendsafely.dremio.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
+	url := "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
 	linkParks, err := ParseLink(url)
 	if err != nil {
 		t.Fatalf("unexected error '%v'", err)
