@@ -15,7 +15,9 @@
 */
 package main
 
-import "github.com/rsvihladremio/ssdownloader/cmd"
+import (
+	"github.com/rsvihladremio/ssdownloader/cmd"
+)
 
 func main() {
 	cmd.Execute()

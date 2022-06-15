@@ -16,8 +16,10 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/spf13/cobra"
@@ -30,17 +32,33 @@ var C config.Config
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "ssdownloader",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "ssdownloader downloads file from sendsafely either via ticket number in zendesk or via sendsafely link",
+	Long: `ssdownloader downloads file from sendsafely either via ticket number in zendesk or via sendsafely link see
+	the following examples:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+//by link
+ssdownloader link "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
+
+//by zendesk ticket
+ssdownloader ticket 111111
+`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
 }
+
+func PrintHeader(version, platform, arch, gitSha string) string {
+	return fmt.Sprintf("ssdownloader %v-%v-%v-%v\n", version, gitSha, platform, arch)
+}
+
+// GitSha is added from the build and release scripts
+var GitSha string = "unknown"
+
+// Version is pulled from the branch name and set in the build and release scripts
+var Version string = "unknownVersion"
+
+var platform string = runtime.GOOS
+var arch string = runtime.GOARCH
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -52,6 +70,7 @@ func Execute() {
 }
 
 func init() {
+	fmt.Println(PrintHeader(Version, platform, arch, GitSha))
 	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
 	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
@@ -67,9 +86,7 @@ func initConfig() {
 		log.Fatalf("unhandled error loading configuration file '%v' with error '%v'", cfgFile, err)
 	}
 	_, err = os.Stat(fileToLoad)
-	log.Printf("config file '%v'", fileToLoad)
 	if !os.IsNotExist(err) {
-		log.Printf("loading configuration file '%v'", fileToLoad)
 		err := config.Load(cfgFile, &C)
 		if err != nil {
 			log.Printf("unable to load config file '%v' due to error '%v'", fileToLoad, err)

@@ -29,12 +29,15 @@ import (
 
 const SS_URL = "https://app.sendsafely.com/api/v2.0"
 
+// SendSafelyClient uses the SendSafely REST Api to
+// enable automation of SendSafely in Go
 type SendSafelyClient struct {
 	client      *resty.Client
 	ssApiKey    string
 	ssApiSecret string
 }
 
+// NewSendSafelyClient is the preferred way to initialize SendSafelyClient
 func NewSendSafelyClient(ssApiKey, ssApiSecret string) *SendSafelyClient {
 	client := resty.New()
 
