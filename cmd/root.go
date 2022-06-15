@@ -25,16 +25,13 @@ import (
 	"log"
 	"os"
 
+	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
-var ssApiKey *string
-var ssApiSecret *string
-var zendeskDomain *string
-var zendeskEmail *string
-var zendeskToken *string
+
+var C config.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -61,36 +58,27 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	ssApiKey = rootCmd.PersistentFlags().String("ss-api-key", "", "the SendSafely API key")
-	ssApiSecret = rootCmd.PersistentFlags().String("ss-api-secret", "", "the SendSafely API secret")
-	zendeskDomain = rootCmd.PersistentFlags().String("zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
-	zendeskEmail = rootCmd.PersistentFlags().String("zendesk-email", "", "zendesk email address")
-	zendeskToken = rootCmd.PersistentFlags().String("zendesk-token", "", "zendesk api token")
-
+	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
+	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
+	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
+	rootCmd.PersistentFlags().StringVar(&C.ZendeskEmail, "zendesk-email", "", "zendesk email address")
+	rootCmd.PersistentFlags().StringVar(&C.ZendeskToken, "zendesk-token", "", "zendesk api token")
+	initConfig()
 }
 
-// initConfig reads in config file and ENV variables if set.
+// initConfig reads in config file if present
 func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		// Search config in home directory with name ".ssdownloader" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".ssdownloader")
+	fileToLoad, err := config.ReadConfigFile(cfgFile)
+	if err != nil {
+		log.Fatalf("unhandled error loading configuration file '%v' with error '%v'", cfgFile, err)
 	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		log.Printf("Using config file: %v", viper.ConfigFileUsed())
+	_, err = os.Stat(fileToLoad)
+	log.Printf("config file '%v'", fileToLoad)
+	if !os.IsNotExist(err) {
+		log.Printf("loading configuration file '%v'", fileToLoad)
+		err := config.Load(cfgFile, &C)
+		if err != nil {
+			log.Printf("unable to load config file '%v' due to error '%v'", fileToLoad, err)
+		}
 	}
 }

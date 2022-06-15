@@ -23,11 +23,9 @@ package cmd
 
 import (
 	"log"
-	"os"
-	"path/filepath"
 
+	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // initCmd represents the init command
@@ -50,36 +48,11 @@ ssdownloader init
 > (zendesk token): 3jkljf`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		viper.Set("ss-api-key", ssApiKey)
-		viper.Set("ss-api-secret", ssApiSecret)
-		viper.Set("zendesk-domain", zendeskDomain)
-		viper.Set("zendesk-email", zendeskEmail)
-		viper.Set("zendesk-token", zendeskToken)
+		//TODO take parameter to specify configuration file location
+		if err := config.Save(C, ""); err != nil {
+			log.Fatalf("unexpected error saving configuration '%v'", err)
+		}
 
-		_, err := os.Stat(cfgFile)
-		if os.IsNotExist(err) {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				if err != nil {
-					log.Fatalf("unable to get home directory this is a bug '%v'", err)
-				}
-			}
-			configFile := filepath.Join(home, ".ssdownloader")
-			// best security practice
-			cleanedConfigFile := filepath.Clean(configFile)
-			file, err := os.Create(cleanedConfigFile)
-			if err != nil {
-				log.Fatalf("unable to create configuration file with error '%v' for configuration file '%v'", err, cleanedConfigFile)
-			}
-			defer func() {
-				if err = file.Close(); err != nil {
-					log.Printf("WARNING: file handle not closed on config file report this as a bug '%v'", err)
-				}
-			}()
-		}
-		if err := viper.WriteConfig(); err != nil {
-			log.Fatalf("unable to write configuration with error '%v'", err)
-		}
 		log.Println("config file written")
 	},
 }

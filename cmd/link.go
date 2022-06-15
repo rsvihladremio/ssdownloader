@@ -22,11 +22,9 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/rsvihladremio/ssdownloader/link"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
@@ -42,15 +40,13 @@ var linkCmd = &cobra.Command{
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		ssApiKey := fmt.Sprintf("%v", viper.Get("ss-api-key"))
-		ssApiSecret := fmt.Sprintf("%v", viper.Get("ss-api-secret"))
-		if ssApiKey == "" {
+		if C.SsApiKey == "" {
 			log.Fatalf("ss-api-key is not set and this is required")
 		}
-		if ssApiSecret == "" {
+		if C.SsApiSecret == "" {
 			log.Fatalf("ss-api-secret is not set and this is required")
 		}
-		ssClient := sendsafely.NewSendSafelyClient(ssApiKey, ssApiSecret)
+		ssClient := sendsafely.NewSendSafelyClient(C.SsApiKey, C.SsApiSecret)
 		url := args[0]
 		linkParts, err := link.ParseLink(url)
 		if err != nil {
