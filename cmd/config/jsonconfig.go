@@ -29,6 +29,7 @@ type Config struct {
 	ZendeskDomain string
 	ZendeskEmail  string
 	ZendeskToken  string
+	DownloadDir   string
 }
 
 func ReadConfigFile(cfgFile string) (string, error) {

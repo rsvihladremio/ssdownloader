@@ -40,18 +40,16 @@ var linkCmd = &cobra.Command{
 		if C.SsApiSecret == "" {
 			log.Fatalf("ss-api-secret is not set and this is required")
 		}
-		ssClient := sendsafely.NewSendSafelyClient(C.SsApiKey, C.SsApiSecret)
 		url := args[0]
 		linkParts, err := link.ParseLink(url)
 		if err != nil {
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageId := linkParts.PackageCode
-		p, err := ssClient.RetrievePackgeById(packageId)
+		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C)
 		if err != nil {
-			log.Fatalf("unexpected error '%v' retrieving packageId '%v'", err, packageId)
+			log.Fatal(err)
 		}
-		log.Printf("%v", p)
 	},
 }
 

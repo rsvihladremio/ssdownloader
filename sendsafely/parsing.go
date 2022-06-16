@@ -17,6 +17,7 @@ package sendsafely
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/valyala/fastjson"
@@ -34,7 +35,7 @@ type SendSafelyFile struct {
 	FileId          string
 	FileName        string
 	FileSize        int64
-	Parts           int64
+	Parts           int
 	FileUploaded    time.Time
 	FileUploadedStr string
 	FileVersion     string
@@ -122,9 +123,6 @@ func missingFieldError(fieldName, jsonBody string) error {
 //}
 func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackage, error) {
 	var ssp SendSafelyPackage
-	if s.jsonParser != nil {
-		return SendSafelyPackage{}, fmt.Errorf("the jsonParser is not set which means the SendSafelyApiParser was incorrectly created ,this is a bug")
-	}
 
 	// if we were parsing lots of these we want to reuse the jsonParser to minimize allocations
 	v, err := s.jsonParser.Parse(packageJson)
@@ -148,13 +146,61 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 	var fileIds []SendSafelyFile
 	filesArray := v.GetArray("files")
 	for i, e := range filesArray {
-		//TODO need to pull the rest of the File
 		fileElement := e.Get("fileId")
 		if !fileElement.Exists() {
 			return SendSafelyPackage{}, fmt.Errorf("missing id in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
 		}
+
+		fileName := e.Get("fileName")
+		if !fileName.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing fileName in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		fileSize := e.Get("fileSize")
+		if !fileSize.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing fileSize in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		parts := e.Get("parts")
+		if !parts.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing parts in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		createdByEmail := e.Get("createdByEmail")
+		if !createdByEmail.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing createdByEmail in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		fileUploadedRaw := e.Get("fileUploaded")
+		if !fileUploadedRaw.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing fileUploaded in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		// comes back in this format Jun 9, 2022 1:32:34 PM
+		fileUploaded, err := time.Parse(DATE_FMT, string(fileUploadedRaw.GetStringBytes()))
+		if err != nil {
+			return SendSafelyPackage{}, fmt.Errorf("fileUploaded has the incorrect format and caused error '%v' in the %v element of the files array (indexed at 1). Array was '%v' and raw string was '%v'", err, i+1, filesArray, fileUploadedRaw)
+		}
+
+		fileUploadedStr := e.Get("fileUploadedStr")
+		if !fileUploadedStr.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing fileUploadedStr in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
+		fileVersion := e.Get("fileVersion")
+		if !fileVersion.Exists() {
+			return SendSafelyPackage{}, fmt.Errorf("missing fileVersion in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
+		}
+
 		fileIds = append(fileIds, SendSafelyFile{
-			FileId: string(fileElement.GetStringBytes()),
+			FileId:          string(fileElement.GetStringBytes()),
+			FileName:        string(fileName.GetStringBytes()),
+			FileSize:        fileSize.GetInt64(),
+			Parts:           int(parts.GetInt64()),
+			CreatedByEmail:  string(createdByEmail.GetStringBytes()),
+			FileUploaded:    fileUploaded,
+			FileUploadedStr: string(fileUploadedStr.GetStringBytes()),
+			FileVersion:     string(fileVersion.GetStringBytes()),
 		})
 	}
 	ssp.Files = fileIds
@@ -216,9 +262,6 @@ const DATE_FMT = "Jan 2, 2006 3:04:05 PM"
 //   "response": "SUCCESS"
 // }
 func (s *SendSafelyApiParser) ParseDownloadUrls(downloadJson string) ([]SendSafelyDownloadUrl, error) {
-	if s.jsonParser != nil {
-		return []SendSafelyDownloadUrl{}, fmt.Errorf("the jsonParser is not set which means the SendSafelyApiParser was incorrectly created ,this is a bug")
-	}
 	var response []SendSafelyDownloadUrl
 	v, err := s.jsonParser.Parse(downloadJson)
 	if err != nil {
@@ -226,7 +269,12 @@ func (s *SendSafelyApiParser) ParseDownloadUrls(downloadJson string) ([]SendSafe
 	}
 	responseStatus := v.GetStringBytes("response")
 	if string(responseStatus) != "SUCCESS" {
-		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", responseStatus, downloadJson)
+		log.Println(downloadJson)
+		message := v.Get("message")
+		if !message.Exists() {
+			return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", responseStatus, downloadJson)
+		}
+		return []SendSafelyDownloadUrl{}, fmt.Errorf("failed download due to %v %v", string(responseStatus), message)
 	}
 
 	downloadUrls := v.GetArray("downloadUrls")

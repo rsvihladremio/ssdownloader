@@ -19,6 +19,35 @@ import (
 	"testing"
 )
 
+func TestParsingDownloadUrls(t *testing.T) {
+	parser := SendSafelyApiParser{}
+	d, err := parser.ParseDownloadUrls(`{
+		"downloadUrls": [
+		  {
+			"part": 1,
+			"url": "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
+		  }
+		],
+		"response": "SUCCESS"
+	  }`)
+	if err != nil {
+		t.Fatalf("unable to parse download url %v", err)
+	}
+	if len(d) != 1 {
+		t.Fatalf("expected %v download url but was %v", 1, len(d))
+	}
+	part := d[0].Part
+	expectedPart := 1
+	if part != expectedPart {
+		t.Errorf("Part expected to be %v but was %v", expectedPart, part)
+	}
+	url := d[0].Url
+	expectedUrl := "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
+	if url != expectedUrl {
+		t.Errorf("Url expected to be %v but was %v", expectedUrl, url)
+	}
+}
+
 func TestParsingPackage(t *testing.T) {
 	parser := SendSafelyApiParser{}
 	//taken from https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation-200-approverlist
