@@ -6,6 +6,7 @@ require (
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/spf13/cobra v1.4.0
 	github.com/valyala/fastjson v1.6.3
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 )
 
 require (

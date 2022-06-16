@@ -272,7 +272,7 @@ func (s *SendSafelyApiParser) ParseDownloadUrls(downloadJson string) ([]SendSafe
 		log.Println(downloadJson)
 		message := v.Get("message")
 		if !message.Exists() {
-			return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", responseStatus, downloadJson)
+			return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", string(responseStatus), downloadJson)
 		}
 		return []SendSafelyDownloadUrl{}, fmt.Errorf("failed download due to %v %v", string(responseStatus), message)
 	}

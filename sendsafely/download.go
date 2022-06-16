@@ -16,7 +16,9 @@
 package sendsafely
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -38,11 +40,37 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 	if err != nil {
 		return err
 	}
+
+	//making top level download directory if it does not exist
+	_, err = os.Stat(c.DownloadDir)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		configDir := filepath.Dir(c.DownloadDir)
+		log.Printf("making dir %v", c.DownloadDir)
+		err = os.Mkdir(c.DownloadDir, 0700)
+		if err != nil {
+			return fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+		}
+	}
+
+	//make config directory for this package code if it does not exist
+	downloadDir := filepath.Join(c.DownloadDir, p.PackageCode)
+
+	_, err = os.Stat(downloadDir)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		configDir := filepath.Dir(downloadDir)
+		log.Printf("making dir %v", downloadDir)
+		err = os.Mkdir(downloadDir, 0700)
+		if err != nil {
+			return fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+		}
+	}
+
 	//naively make a lot of requests and use primitives to wait until it's all done
 	var wgDownloadUrls sync.WaitGroup
 
 	for _, f := range p.Files {
 		log.Printf("downloading %v", f.FileName)
+		fileName := f.FileName
 		segmentRequestInformation := calculateExecutionCalls(f.Parts)
 		for _, segment := range segmentRequestInformation {
 			start := segment.StartSegment
@@ -69,14 +97,13 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 					wgDownloadUrls.Add(1)
 					go func() {
 						defer wgDownloadUrls.Done()
-						tmpName := fmt.Sprintf("%v.%v", f.FileName, filePart)
-						downloadLoc := filepath.Join(c.DownloadDir, p.PackageId, tmpName)
+						tmpName := fmt.Sprintf("%v.%v", fileName, filePart)
+						downloadLoc := filepath.Join(downloadDir, tmpName)
 						err = downloadFile(downloadLoc, downloadUrl)
 						if err != nil {
 							log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
 							return
 						}
-						log.Printf("tmp file %v written", downloadLoc)
 					}()
 				}
 			}()
@@ -116,16 +143,25 @@ func downloadFile(fileName, url string) error {
 
 	//TODO make buffer size adjustable
 	buf := make([]byte, 4096)
+	bytes_read := 0
+	bytes_written := 0
 	for {
 		n, err := resp.Body.Read(buf)
-		if err != nil {
-			return fmt.Errorf("unable to read body into buffer due to error '%v' while downloading url '%v' and writing to file '%v'", err, url, cleanedFileName)
+		if errors.Is(err, io.EOF) {
+			log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
+			break
 		}
+		if err != nil {
+			return fmt.Errorf("unable to read body into buffer due to error '%v' while downloading url '%v' and writing to file '%v', already read %v bytes", err, url, cleanedFileName, bytes_read)
+		}
+		bytes_read += n
 		if n == 0 {
 			break
 		}
-		if _, err := f.Write(buf[:n]); err != nil {
+		if nw, err := f.Write(buf[:n]); err != nil {
 			return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
+		} else {
+			bytes_written += nw
 		}
 	}
 	return nil
