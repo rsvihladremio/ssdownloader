@@ -95,3 +95,23 @@ func (s *SendSafelyClient) generateRequestSignature(ts string, urlPath string, r
 	// Get result and encode as hexadecimal string
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
+
+// GetDownloadUrlsForFile retrieves up to 25 download urls per request
+// read https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
+// for details
+// request example
+//
+// # Headers
+// ss-api-key: string
+// ss-request-signature: string
+// ss-request-timestamp: string
+
+// # Payload
+// {
+//   "checksum": "20ea6189a58d6618164d6b53cbc7b5dbeef2fa9a61186b13a80cf1f620987bc1",
+//   "startSegment": 1,
+//   "endSegment": 25
+// }
+func (s *SendSafelyClient) GetDownloadUrlsForFile() (SendSafelyDownloadUrlsResponse, error) {
+
+}

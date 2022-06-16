@@ -22,6 +22,12 @@ import (
 	"github.com/valyala/fastjson"
 )
 
+// SendSafelyApiParser stores the jsonParser so it can be shared between
+// operations, this mainly benefits the parsing of the file parts
+type SendSafelyApiParser struct {
+	jsonParser fastjson.Parser
+}
+
 // SendSafelyFile are curious as near as they do not match the SendSafely documentation for what a package returns
 // This was discovered by returning the values
 type SendSafelyFile struct {
@@ -46,6 +52,15 @@ type SendSafelyPackage struct {
 	State            string
 	PackageTimestamp time.Time
 	Response         string
+}
+
+// SendSafelyDownloadUrl provides the part id and the actual url to get the file
+// the Part field tells you the order of the parts so you can reconstruct the file
+// after downloading it
+// https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
+type SendSafelyDownloadUrl struct {
+	Part int
+	Url  string
 }
 
 func missingFieldError(fieldName, jsonBody string) error {
@@ -105,11 +120,14 @@ func missingFieldError(fieldName, jsonBody string) error {
 //  "rootDirectoryId": "8c3c2184-e73e-4137-be92-e9c5b5661258",
 //  "response": "SUCCESS"
 //}
-func ParsePackage(packageJson string) (SendSafelyPackage, error) {
+func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackage, error) {
 	var ssp SendSafelyPackage
+	if s.jsonParser != nil {
+		return SendSafelyPackage{}, fmt.Errorf("the jsonParser is not set which means the SendSafelyApiParser was incorrectly created ,this is a bug")
+	}
+
 	// if we were parsing lots of these we want to reuse the jsonParser to minimize allocations
-	var jsonParser fastjson.Parser
-	v, err := jsonParser.Parse(packageJson)
+	v, err := s.jsonParser.Parse(packageJson)
 	if err != nil {
 		return SendSafelyPackage{}, fmt.Errorf("unexpected error parsing package json string '%v' with error '%v'", packageJson, err)
 	}
@@ -185,3 +203,42 @@ func ParsePackage(packageJson string) (SendSafelyPackage, error) {
 }
 
 const DATE_FMT = "Jan 2, 2006 3:04:05 PM"
+
+// ParseDownloadUrls reads the json response provided here https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
+// here is an example
+// {
+//   "downloadUrls": [
+//     {
+//       "part": 1,
+//       "url": "https://sendsafely-dual-region-us.s3-accelerate.amazonaws.com/commercial/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE/11111111-2222-3333-4444-555555555555-1?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1554862678&Signature=OTP5Z0DIutXKbRRT4NwmxQG9jFk%3D"
+//     }
+//   ],
+//   "response": "SUCCESS"
+// }
+func (s *SendSafelyApiParser) ParseDownloadUrls(downloadJson string) ([]SendSafelyDownloadUrl, error) {
+	if s.jsonParser != nil {
+		return []SendSafelyDownloadUrl{}, fmt.Errorf("the jsonParser is not set which means the SendSafelyApiParser was incorrectly created ,this is a bug")
+	}
+	var response []SendSafelyDownloadUrl
+	v, err := s.jsonParser.Parse(downloadJson)
+	if err != nil {
+		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected error parsing downloadUrls json string '%v' with error '%v'", downloadJson, err)
+	}
+	responseStatus := v.GetStringBytes("response")
+	if string(responseStatus) != "SUCCESS" {
+		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", responseStatus, downloadJson)
+	}
+
+	downloadUrls := v.GetArray("downloadUrls")
+	for _, e := range downloadUrls {
+		if e.Exists() {
+			part := e.GetInt("part")
+			url := string(e.GetStringBytes("url"))
+			response = append(response, SendSafelyDownloadUrl{
+				Part: part,
+				Url:  url,
+			})
+		}
+	}
+	return response, nil
+}
