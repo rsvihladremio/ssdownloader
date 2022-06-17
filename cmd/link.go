@@ -39,18 +39,27 @@ var linkCmd = &cobra.Command{
 		if CpuProfile != "" {
 			f, err := os.Create(CpuProfile)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CpuProfile, err)
 			}
-			pprof.StartCPUProfile(f)
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatalf("unable to start cpu profiling due to error %v", err)
+			}
 			defer pprof.StopCPUProfile()
 		}
 		if MemProfile != "" {
 			f, err := os.Create(MemProfile)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("unable to create mem profile at '%v' due to error '%v'", MemProfile, err)
 			}
-			pprof.WriteHeapProfile(f)
-			f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					log.Printf("WARN unable to close file handle for file '%v' due to error '%v'", MemProfile, err)
+				}
+			}()
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatalf("unable to start mem profiling due to error '%v'", err)
+			}
+
 		}
 		if C.SsApiKey == "" {
 			log.Fatalf("ss-api-key is not set and this is required")
