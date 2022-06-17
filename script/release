@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 # this is also set in script/build and is a copy paste
 GIT_SHA=`git rev-parse --short HEAD`
-VERSION=`git rev-parse --abbrev-ref HEAD`
+VERSION=$1
 LDFLAGS="-X github.com/rsvihladremio/ssdownloader/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/ssdownloader/cmd.Version=$VERSION"
 
 echo "Cleaning bin folder…"
@@ -36,3 +36,7 @@ echo "Building windows-amd64…"
 date "+%H:%M:%S"
 GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
 zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader.exe
+
+
+gh release create $VERSION --title $VERSION -d -F changelog.md ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader-linux-amd64.zip 
+ 
