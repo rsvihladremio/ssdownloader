@@ -53,6 +53,7 @@ type SendSafelyPackage struct {
 	State            string
 	PackageTimestamp time.Time
 	Response         string
+	ServerSecret     string
 }
 
 // SendSafelyDownloadUrl provides the part id and the actual url to get the file
@@ -98,7 +99,7 @@ func missingFieldError(fieldName, jsonBody string) error {
 //    }
 //  ],
 //  "files": [
-//    { //NOTE THIS IS NOTHING LIKE WHAT IT RETURNS
+//    { //NOTE THIS IS NOTHING LIKE WHAT IT RETURNS see SendSafelyFile for the accurate field names and types
 //      "id": "string"
 //    }
 //  ],
@@ -129,7 +130,6 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 	if err != nil {
 		return SendSafelyPackage{}, fmt.Errorf("unexpected error parsing package json string '%v' with error '%v'", packageJson, err)
 	}
-
 	packageId := v.Get("packageId")
 	if !packageId.Exists() {
 		return SendSafelyPackage{}, missingFieldError("packageId", packageJson)
@@ -141,6 +141,12 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 		return SendSafelyPackage{}, missingFieldError("packageCode", packageJson)
 	}
 	ssp.PackageCode = string(packageCode.GetStringBytes())
+
+	serverSecret := v.Get("serverSecret")
+	if !serverSecret.Exists() {
+		return SendSafelyPackage{}, missingFieldError("serverSecret", packageJson)
+	}
+	ssp.ServerSecret = string(serverSecret.GetStringBytes())
 
 	// looping through the id values for files
 	var fileIds []SendSafelyFile
