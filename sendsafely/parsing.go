@@ -18,6 +18,7 @@ package sendsafely
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/valyala/fastjson"
@@ -166,6 +167,7 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 		if !fileSize.Exists() {
 			return SendSafelyPackage{}, fmt.Errorf("missing fileSize in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
 		}
+		log.Printf("file size is %v", e.Get("fileSize"))
 
 		parts := e.Get("parts")
 		if !parts.Exists() {
@@ -197,11 +199,14 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 		if !fileVersion.Exists() {
 			return SendSafelyPackage{}, fmt.Errorf("missing fileVersion in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
 		}
-
+		fileSizeInt, err := strconv.ParseInt(string(fileSize.GetStringBytes()), 10, 64)
+		if err != nil {
+			return SendSafelyPackage{}, fmt.Errorf("unable to convert fileSize field with value '%v' into int due to error '%v'", string(fileSize.GetStringBytes()), err)
+		}
 		fileIds = append(fileIds, SendSafelyFile{
 			FileId:          string(fileElement.GetStringBytes()),
 			FileName:        string(fileName.GetStringBytes()),
-			FileSize:        fileSize.GetInt64(),
+			FileSize:        fileSizeInt,
 			Parts:           int(parts.GetInt64()),
 			CreatedByEmail:  string(createdByEmail.GetStringBytes()),
 			FileUploaded:    fileUploaded,

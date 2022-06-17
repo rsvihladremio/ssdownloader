@@ -71,32 +71,38 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 	for _, f := range p.Files {
 		log.Printf("downloading %v", f.FileName)
 		fileName := f.FileName
+		//TODO make part of verbose flag
+		//log.Printf("file %v has %v parts and a total file size of %v", f.FileName, f.Parts, f.FileSize)
 		segmentRequestInformation := calculateExecutionCalls(f.Parts)
 		for _, segment := range segmentRequestInformation {
 			start := segment.StartSegment
 			end := segment.EndSegment
 			wgDownloadUrls.Add(1)
+			fileId := f.FileId
 			go func() {
 				defer wgDownloadUrls.Done()
 				urls, err := client.GetDownloadUrlsForFile(
 					p,
-					f.FileId,
+					fileId,
 					keyCode,
 					start,
 					end,
 				)
 				if err != nil {
-					log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", f.FileName, err)
+					log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
 					return
 				}
 
-				for _, url := range urls {
-					downloadUrl := url.Url
-					filePart := url.Part
+				for i := range urls {
+					index := i
+
 					//spawning yet another go routine so adding this to the wait group
 					wgDownloadUrls.Add(1)
 					go func() {
 						defer wgDownloadUrls.Done()
+						url := urls[index]
+						downloadUrl := url.Url
+						filePart := url.Part
 						// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
 						tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
 						downloadLoc := filepath.Join(downloadDir, tmpName)

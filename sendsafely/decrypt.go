@@ -27,9 +27,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	pgpErrors "github.com/ProtonMail/go-crypto/openpgp/errors"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 // DecryptPart decrypts one of the file parts using the gpp protocol with the following logic from the sendsafely docs
@@ -37,7 +37,7 @@ import (
 //
 // Each file part will need to be individually downloaded and decrypted using PGP. You will need to use the "Server Secret" (included in the Package Information response from Step 1) and the keycode (Client Secret) in order to compute the required decryption key.
 //
-//When decrypting each file part, make sure you use the following PGP options:
+// When decrypting each file part, make sure you use the following PGP options:
 //
 // * Symmetric-Key Algorithm should be 9 (AES-256)
 // * Compression Algorithm should be 0 (Uncompressed)

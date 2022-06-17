@@ -82,7 +82,7 @@ func TestParsingPackage(t *testing.T) {
 		  {
 			"fileId": "abcfile",
 			"fileName": "fname",
-			"fileSize": 12,
+			"fileSize": "12",
 			"parts": 1,
 			"createdByEmail": "test@test.com",
 			"fileUploaded": "Jun 9, 2022 1:32:34 PM",
