@@ -23,6 +23,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -69,9 +70,10 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 	}
 
 	var emptyKeyRing openpgp.EntityList
-	encryptedIO, err := os.Open(filePart)
+	cleanedFilePart := filepath.Clean(filePart)
+	encryptedIO, err := os.Open(cleanedFilePart)
 	if err != nil {
-		return "", fmt.Errorf("unable to read %v due to error %v", filePart, err)
+		return "", fmt.Errorf("unable to read %v due to error %v", cleanedFilePart, err)
 	}
 	md, err := openpgp.ReadMessage(encryptedIO, emptyKeyRing, prompt, config)
 	if err != nil {
@@ -79,7 +81,13 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 		return "", fmt.Errorf("gopenpgp: error in reading password protected message: wrong password or malformed message %v", err)
 	}
 
-	defer encryptedIO.Close()
+	defer func() {
+		err := encryptedIO.Close()
+		if err != nil {
+			log.Printf("WARN encrypted io handler for file '%v' failed to close due to '%v'", cleanedFilePart, err)
+		}
+
+	}()
 
 	messageBuf := bytes.NewBuffer(nil)
 	_, err = io.Copy(messageBuf, md.UnverifiedBody)
@@ -93,14 +101,15 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 	}
 
 	//remove the "encrypted" suffix
-	newFileName := strings.TrimSuffix(filePart, ".encrypted")
+	newFileName := strings.TrimSuffix(cleanedFilePart, ".encrypted")
 
-	log.Printf("new file name is %v", newFileName)
+	//TODO behind verbose logs
+	//log.Printf("new file name is %v", newFileName)
 	err = os.WriteFile(newFileName, messageBuf.Bytes(), 0600)
 	if err != nil {
 		return "", fmt.Errorf("unable to write file '%v' due to error '%v'", newFileName, err)
 	}
-	if err := os.Remove(filePart); err != nil {
+	if err := os.Remove(cleanedFilePart); err != nil {
 		log.Printf("WARN unable to delete '%v' due to error '%v' so you will need to manually clean this file up", filePart, err)
 	}
 	return newFileName, nil

@@ -167,7 +167,6 @@ func (s *SendSafelyApiParser) ParsePackage(packageJson string) (SendSafelyPackag
 		if !fileSize.Exists() {
 			return SendSafelyPackage{}, fmt.Errorf("missing fileSize in the %v element of the files array (indexed at 1). Array was '%v'", i+1, filesArray)
 		}
-		log.Printf("file size is %v", e.Get("fileSize"))
 
 		parts := e.Get("parts")
 		if !parts.Exists() {

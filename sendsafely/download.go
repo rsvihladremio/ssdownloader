@@ -66,7 +66,7 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 	}
 
 	//naively make a lot of requests and use primitives to wait until it's all done
-	var wgDownloadUrls sync.WaitGroup
+	var apiCalls sync.WaitGroup
 
 	for _, f := range p.Files {
 		log.Printf("downloading %v", f.FileName)
@@ -77,10 +77,10 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 		for _, segment := range segmentRequestInformation {
 			start := segment.StartSegment
 			end := segment.EndSegment
-			wgDownloadUrls.Add(1)
+			apiCalls.Add(1)
 			fileId := f.FileId
 			go func() {
-				defer wgDownloadUrls.Done()
+				defer apiCalls.Done()
 				urls, err := client.GetDownloadUrlsForFile(
 					p,
 					fileId,
@@ -92,7 +92,9 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 					log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
 					return
 				}
-
+				var wgDownloadUrls sync.WaitGroup
+				var m sync.Mutex
+				var fileNames []string
 				for i := range urls {
 					index := i
 
@@ -112,17 +114,28 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 							return
 						}
 						newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
+						m.Lock()
+						fileNames = append(fileNames, newFileName)
+						m.Unlock()
 						if err != nil {
 							log.Printf("unable to decrype file %v due to error '%v'", downloadLoc, err)
 							return
 						}
-						log.Printf("file '%v' is decrypted", newFileName)
+						//TODO behind verbose flag
+						//log.Printf("file '%v' is decrypted", newFileName)
 					}()
+				}
+				wgDownloadUrls.Wait()
+				newFile, err := CombineFiles(fileNames)
+				if err != nil {
+					log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
+				} else {
+					log.Printf("file '%v is complete", newFile)
 				}
 			}()
 		}
 	}
-	wgDownloadUrls.Wait()
+	apiCalls.Wait()
 	return nil
 }
 
@@ -153,12 +166,13 @@ func downloadFile(fileName, url string) error {
 			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
 		}
 	}()
-	bytes_written, err := io.Copy(f, resp.Body)
+	_, err = io.Copy(f, resp.Body)
 	if err != nil {
 		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
 	}
 
-	log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
+	//TODO make optional with verbose flag
+	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
 	//TODO make buffer size adjustable
 	// buf := make([]byte, 4096)
 	// bytes_read := 0
