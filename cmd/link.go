@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"log"
+	"os"
+	"runtime/pprof"
 
 	"github.com/spf13/cobra"
 
@@ -34,6 +36,22 @@ var linkCmd = &cobra.Command{
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if CpuProfile != "" {
+			f, err := os.Create(CpuProfile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			pprof.StartCPUProfile(f)
+			defer pprof.StopCPUProfile()
+		}
+		if MemProfile != "" {
+			f, err := os.Create(MemProfile)
+			if err != nil {
+				log.Fatal(err)
+			}
+			pprof.WriteHeapProfile(f)
+			f.Close()
+		}
 		if C.SsApiKey == "" {
 			log.Fatalf("ss-api-key is not set and this is required")
 		}

@@ -61,7 +61,8 @@ func CombineFiles(fileNames []string) (string, error) {
 				log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", f, err)
 			}
 		}
-		_, err = io.Copy(newFileHandle, fileHandle)
+		buf := make([]byte, 8192*1024)
+		_, err = io.CopyBuffer(newFileHandle, fileHandle, buf)
 		if err != nil {
 			close()
 			return "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)

@@ -95,6 +95,8 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 				var wgDownloadUrls sync.WaitGroup
 				var m sync.Mutex
 				var fileNames []string
+				var errMutex sync.Mutex
+				var failedFiles []string
 				for i := range urls {
 					index := i
 
@@ -118,7 +120,11 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 						fileNames = append(fileNames, newFileName)
 						m.Unlock()
 						if err != nil {
-							log.Printf("unable to decrype file %v due to error '%v'", downloadLoc, err)
+							errMutex.Lock()
+							failedFiles = append(failedFiles, newFileName)
+							errMutex.Unlock()
+							log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
+
 							return
 						}
 						//TODO behind verbose flag
@@ -126,6 +132,10 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 					}()
 				}
 				wgDownloadUrls.Wait()
+				if len(failedFiles) > 0 {
+					log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
+					return
+				}
 				newFile, err := CombineFiles(fileNames)
 				if err != nil {
 					log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
@@ -166,36 +176,15 @@ func downloadFile(fileName, url string) error {
 			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
 		}
 	}()
-	_, err = io.Copy(f, resp.Body)
+	//TODO make optional with verbose flag
+	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
+	//TODO make buffer size adjustable
+	buf := make([]byte, 4096*1024)
+	_, err = io.CopyBuffer(f, resp.Body, buf)
 	if err != nil {
 		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
 	}
 
-	//TODO make optional with verbose flag
-	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
-	//TODO make buffer size adjustable
-	// buf := make([]byte, 4096)
-	// bytes_read := 0
-	// bytes_written := 0
-	// for {
-	// 	n, err := resp.Body.Read(buf)
-	// 	if errors.Is(err, io.EOF) {
-	// 		log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
-	// 		break
-	// 	}
-	// 	if err != nil {
-	// 		return fmt.Errorf("unable to read body into buffer due to error '%v' while downloading url '%v' and writing to file '%v', already read %v bytes", err, url, cleanedFileName, bytes_read)
-	// 	}
-	// 	bytes_read += n
-	// 	if n == 0 {
-	// 		break
-	// 	}
-	// 	if nw, err := f.Write(buf[:n]); err != nil {
-	// 		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
-	// 	} else {
-	// 		bytes_written += nw
-	// 	}
-	// }
 	return nil
 }
 

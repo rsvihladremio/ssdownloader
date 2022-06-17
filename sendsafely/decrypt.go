@@ -90,7 +90,8 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 	}()
 
 	messageBuf := bytes.NewBuffer(nil)
-	_, err = io.Copy(messageBuf, md.UnverifiedBody)
+	buf := make([]byte, 4096*1024)
+	_, err = io.CopyBuffer(messageBuf, md.UnverifiedBody, buf)
 	if errors.Is(err, pgpErrors.ErrMDCHashMismatch) {
 		// This MDC error may also be triggered if the password is correct, but the encrypted data was corrupted.
 		// To avoid confusion, we do not inform the user about the second possibility.
