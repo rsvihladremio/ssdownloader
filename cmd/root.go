@@ -59,6 +59,8 @@ var Version string = "unknownVersion"
 
 var platform string = runtime.GOOS
 var arch string = runtime.GOARCH
+var CpuProfile string
+var MemProfile string
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -71,11 +73,19 @@ func Execute() {
 
 func init() {
 	fmt.Println(PrintHeader(Version, platform, arch, GitSha))
+	userDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("do not have access to home directory, critical error '%v'", err)
+	}
 	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
 	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskEmail, "zendesk-email", "", "zendesk email address")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskToken, "zendesk-token", "", "zendesk api token")
+	rootCmd.PersistentFlags().StringVar(&C.DownloadDir, "download-dir", fmt.Sprintf("%v/.sendsafely", userDir), "base directory to put downloads")
+	rootCmd.PersistentFlags().StringVar(&CpuProfile, "cpu-profile", "", "where to generate a cpu profile for diagnosing performance issues")
+	rootCmd.PersistentFlags().StringVar(&MemProfile, "mem-profile", "", "where to generate a mem profile for diagnosing performance issues")
+
 	initConfig()
 }
 

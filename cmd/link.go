@@ -17,6 +17,8 @@ package cmd
 
 import (
 	"log"
+	"os"
+	"runtime/pprof"
 
 	"github.com/spf13/cobra"
 
@@ -34,24 +36,47 @@ var linkCmd = &cobra.Command{
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if CpuProfile != "" {
+			f, err := os.Create(CpuProfile)
+			if err != nil {
+				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CpuProfile, err)
+			}
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatalf("unable to start cpu profiling due to error %v", err)
+			}
+			defer pprof.StopCPUProfile()
+		}
+		if MemProfile != "" {
+			f, err := os.Create(MemProfile)
+			if err != nil {
+				log.Fatalf("unable to create mem profile at '%v' due to error '%v'", MemProfile, err)
+			}
+			defer func() {
+				if err := f.Close(); err != nil {
+					log.Printf("WARN unable to close file handle for file '%v' due to error '%v'", MemProfile, err)
+				}
+			}()
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatalf("unable to start mem profiling due to error '%v'", err)
+			}
+
+		}
 		if C.SsApiKey == "" {
 			log.Fatalf("ss-api-key is not set and this is required")
 		}
 		if C.SsApiSecret == "" {
 			log.Fatalf("ss-api-secret is not set and this is required")
 		}
-		ssClient := sendsafely.NewSendSafelyClient(C.SsApiKey, C.SsApiSecret)
 		url := args[0]
 		linkParts, err := link.ParseLink(url)
 		if err != nil {
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageId := linkParts.PackageCode
-		p, err := ssClient.RetrievePackgeById(packageId)
+		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C)
 		if err != nil {
-			log.Fatalf("unexpected error '%v' retrieving packageId '%v'", err, packageId)
+			log.Fatal(err)
 		}
-		log.Printf("%v", p)
 	},
 }
 

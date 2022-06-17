@@ -8,4 +8,4 @@ cd "$(dirname "$0")/.."
 
 gofmt -l -s -w  .
 
-golangci-lint run -v
+golangci-lint run -v -E exportloopref -D structcheck

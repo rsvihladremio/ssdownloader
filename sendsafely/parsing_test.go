@@ -19,9 +19,39 @@ import (
 	"testing"
 )
 
-func TestParsing(t *testing.T) {
+func TestParsingDownloadUrls(t *testing.T) {
+	parser := SendSafelyApiParser{}
+	d, err := parser.ParseDownloadUrls(`{
+		"downloadUrls": [
+		  {
+			"part": 1,
+			"url": "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
+		  }
+		],
+		"response": "SUCCESS"
+	  }`)
+	if err != nil {
+		t.Fatalf("unable to parse download url %v", err)
+	}
+	if len(d) != 1 {
+		t.Fatalf("expected %v download url but was %v", 1, len(d))
+	}
+	part := d[0].Part
+	expectedPart := 1
+	if part != expectedPart {
+		t.Errorf("Part expected to be %v but was %v", expectedPart, part)
+	}
+	url := d[0].Url
+	expectedUrl := "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
+	if url != expectedUrl {
+		t.Errorf("Url expected to be %v but was %v", expectedUrl, url)
+	}
+}
+
+func TestParsingPackage(t *testing.T) {
+	parser := SendSafelyApiParser{}
 	//taken from https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation-200-approverlist
-	p, err := ParsePackage(`{
+	p, err := parser.ParsePackage(`{
 		"packageId": "GVG2-MNZT",
 		"packageCode": "M0AEMIrTQe9XWRgGDKiKta1pXobmpKwAVafWgXjnBsw",
 		"serverSecret": "ACbuj9NKTkvjZ71Gc0t5zuU1xvba9XAouA",
@@ -50,7 +80,14 @@ func TestParsing(t *testing.T) {
 		],
 		"files": [
 		  {
-			"fileId": "abcfile"
+			"fileId": "abcfile",
+			"fileName": "fname",
+			"fileSize": "12",
+			"parts": 1,
+			"createdByEmail": "test@test.com",
+			"fileUploaded": "Jun 9, 2022 1:32:34 PM",
+			"fileUploadedStr": "Jun 9, 2022 1:32:34 PM",
+			"fileVersion" : "1"
 		  }
 		],
 		"directories": [

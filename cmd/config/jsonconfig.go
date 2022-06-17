@@ -17,6 +17,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,6 +30,7 @@ type Config struct {
 	ZendeskDomain string
 	ZendeskEmail  string
 	ZendeskToken  string
+	DownloadDir   string
 }
 
 func ReadConfigFile(cfgFile string) (string, error) {
@@ -69,8 +71,19 @@ func Save(c Config, cfgFile string) error {
 	if err != nil {
 		return fmt.Errorf("trying to get the path to the configuration resulted in error '%v'", err)
 	}
+
 	// best security practice
 	cleanedConfigFile := filepath.Clean(fileToSave)
+
+	_, err = os.Stat(cleanedConfigFile)
+	if err != nil && errors.Is(err, os.ErrNotExist) {
+		configDir := filepath.Dir(cleanedConfigFile)
+		err = os.MkdirAll(configDir, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("unable to create configuration dir '%v' due to error '%v'", configDir, err)
+		}
+	}
+
 	err = os.WriteFile(cleanedConfigFile, b, os.FileMode(0600))
 	if err != nil {
 		return fmt.Errorf("unable to write configuration file to location '%v' due to error '%v'", cleanedConfigFile, err)
