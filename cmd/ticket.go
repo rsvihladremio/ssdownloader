@@ -16,14 +16,20 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	"github.com/rsvihladremio/ssdownloader/link"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
 	"github.com/rsvihladremio/ssdownloader/zendesk"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
+
+var useZendeskPassword bool
 
 // ticketCmd represents the ticket command
 var ticketCmd = &cobra.Command{
@@ -31,12 +37,27 @@ var ticketCmd = &cobra.Command{
 	Short: "downloads all files for a given ticket id",
 	Long: `download all sendsafely files for a given ticket id example:
 
-		//ticket id is 11111
-		ssdownloader ticket 111111
+		//ticket id is 1111
+		ssdownloader ticket 1111
+
+		//ticket id is 1111 and use password instead of zendesk api key (not best practice security)
+		ssdownloader ticket 1111 -p 
+
 		`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, C.ZendeskToken, C.ZendeskDomain)
+		password := ""
+		if useZendeskPassword {
+			fmt.Println("enter password:")
+			bytePassword, err := term.ReadPassword(int(syscall.Stdin))
+			if err != nil {
+				log.Fatalf("unexpected error reading password '%v'", err)
+			}
+			password = strings.TrimSpace(string(bytePassword))
+		} else {
+			password = C.ZendeskToken
+		}
+		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, password, C.ZendeskDomain)
 		ticketId := args[0]
 		results, err := zendeskApi.GetTicketComents(ticketId)
 		if err != nil {
@@ -58,14 +79,5 @@ var ticketCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(ticketCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// ticketCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// ticketCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	ticketCmd.Flags().BoolVarP(&useZendeskPassword, "zendesk-password", "p", false, "Use a password instead of an api key to authenticate against zendesk")
 }
