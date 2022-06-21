@@ -75,7 +75,7 @@ func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPacka
 		SetHeader("ss-request-signature", sig).
 		Get(requestPath)
 	if err != nil {
-		return SendSafelyPackage{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
+		return SendSafelyPackage{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
 	}
 	return s.parser.ParsePackage(string(r.Body()))
 }
