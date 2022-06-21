@@ -16,23 +16,43 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
+	"path/filepath"
 
+	"github.com/rsvihladremio/ssdownloader/link"
+	"github.com/rsvihladremio/ssdownloader/sendsafely"
+	"github.com/rsvihladremio/ssdownloader/zendesk"
 	"github.com/spf13/cobra"
 )
 
 // ticketCmd represents the ticket command
 var ticketCmd = &cobra.Command{
-	Use:   "ticket",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:   "ticket <zendesk ticket id>",
+	Short: "downloads all files for a given ticket id",
+	Long: `download all sendsafely files for a given ticket id example:
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		//ticket id is 11111
+		ssdownloader ticket 111111
+		`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ticket called")
+		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, C.ZendeskToken, C.ZendeskDomain)
+		ticketId := args[0]
+		results, err := zendeskApi.GetTicketComents(ticketId)
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, url := range results {
+			linkParts, err := link.ParseLink(url)
+			if err != nil {
+				log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
+			}
+			packageId := linkParts.PackageCode
+			err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId))
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
 	},
 }
 

@@ -33,7 +33,7 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error {
+func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string) error {
 
 	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret)
 	p, err := client.RetrievePackgeById(packageId)
@@ -53,13 +53,13 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config) error 
 	}
 
 	//make config directory for this package code if it does not exist
-	downloadDir := filepath.Join(c.DownloadDir, p.PackageCode)
+	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload)
 
 	_, err = os.Stat(downloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		configDir := filepath.Dir(downloadDir)
 		log.Printf("making dir %v", downloadDir)
-		err = os.Mkdir(downloadDir, 0700)
+		err = os.MkdirAll(downloadDir, 0700)
 		if err != nil {
 			return fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
