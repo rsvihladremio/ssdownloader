@@ -16,7 +16,10 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/spf13/cobra"
@@ -31,7 +34,7 @@ var initCmd = &cobra.Command{
 examples:
 
 // via command line flags
-ssdownloader init --ss-api-key 2ufjwid --ss-api-secret afj292 --zendesk-domain test --zendesk-email test@example.com --zendesk-token 3jkljf
+ssdownloader init --ss-api-key 2ufjwid --ss-api-secret afj292 --zendesk-domain test --zendesk-email test@example.com --zendesk-token 3jkljf --download-dir /opt/sendsafely
 
 // via prompts
 ssdownloader init
@@ -39,15 +42,74 @@ ssdownloader init
 > (sendsafely api secret): afj292
 > (zendesk domain): test
 > (zendesk email): test@example.com
-> (zendesk token): 3jkljf`,
+> (zendesk token): 3jkljf
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		//TODO take parameter to specify configuration file location
-		if err := config.Save(C, ""); err != nil {
-			log.Fatalf("unexpected error saving configuration '%v'", err)
+
+		if C.SsApiKey != "" {
+			fmt.Print("(sendsafely api key):")
+			n, err := fmt.Scanln(&C.SsApiKey)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				fmt.Println("sendsafely api key cannot be blank")
+				os.Exit(1)
+			}
+		}
+		if C.SsApiSecret != "" {
+			fmt.Print("(sendsafely api secret):")
+			n, err := fmt.Scanln(&C.SsApiSecret)
+			if err != nil {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				fmt.Println("sendsafely api secret cannot be blank")
+				os.Exit(1)
+			}
 		}
 
-		log.Println("config file written")
+		if C.ZendeskDomain != "" {
+			fmt.Print("(zendesk domain):")
+			n, err := fmt.Scanln(&C.ZendeskDomain)
+			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				fmt.Println("zendesk domain was blank, this means `ssdownload ticket` will not function without the --zendesk-domain flag")
+			}
+		}
+
+		if C.ZendeskEmail != "" {
+			fmt.Print("(zendesk email):")
+			n, err := fmt.Scanln(&C.ZendeskEmail)
+			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				fmt.Println("zendesk email was blank, this means `ssdownload ticket` will not function without the --zendesk-email flag")
+			}
+		}
+
+		if C.ZendeskToken != "" {
+			fmt.Print("(zendesk token):")
+			n, err := fmt.Scanln(&C.ZendeskToken)
+			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
+				log.Fatal(err)
+			}
+			if n == 0 {
+				fmt.Println("zendesk token was blank, this means `ssdownload ticket` will not function without the --zendesk-token flag")
+			}
+		}
+
+		//TODO take parameter to specify configuration file location
+		newConf, err := config.Save(C, "")
+		if err != nil {
+			fmt.Printf("unexpected error saving configuration '%v'\n", err)
+			os.Exit(1)
+		}
+		log.Printf("config file %v written\n", newConf)
 	},
 }
 

@@ -62,14 +62,14 @@ func Load(cfgFile string, c *Config) error {
 	return nil
 }
 
-func Save(c Config, cfgFile string) error {
+func Save(c Config, cfgFile string) (string, error) {
 	b, err := json.Marshal(c)
 	if err != nil {
-		return fmt.Errorf("unable to convert configuration to json file due to error '%v'", err)
+		return "", fmt.Errorf("unable to convert configuration to json file due to error '%v'", err)
 	}
 	fileToSave, err := ReadConfigFile(cfgFile)
 	if err != nil {
-		return fmt.Errorf("trying to get the path to the configuration resulted in error '%v'", err)
+		return "", fmt.Errorf("trying to get the path to the configuration resulted in error '%v'", err)
 	}
 
 	// best security practice
@@ -80,13 +80,13 @@ func Save(c Config, cfgFile string) error {
 		configDir := filepath.Dir(cleanedConfigFile)
 		err = os.MkdirAll(configDir, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("unable to create configuration dir '%v' due to error '%v'", configDir, err)
+			return "", fmt.Errorf("unable to create configuration dir '%v' due to error '%v'", configDir, err)
 		}
 	}
 
 	err = os.WriteFile(cleanedConfigFile, b, os.FileMode(0600))
 	if err != nil {
-		return fmt.Errorf("unable to write configuration file to location '%v' due to error '%v'", cleanedConfigFile, err)
+		return "", fmt.Errorf("unable to write configuration file to location '%v' due to error '%v'", cleanedConfigFile, err)
 	}
-	return nil
+	return cleanedConfigFile, nil
 }
