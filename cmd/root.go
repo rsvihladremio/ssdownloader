@@ -84,7 +84,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
 	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
-	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-domain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
+	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-subdomain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskEmail, "zendesk-email", "", "zendesk email address")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskToken, "zendesk-token", "", "zendesk api token")
 	rootCmd.PersistentFlags().StringVar(&C.DownloadDir, "download-dir", DefaultDownloadDir(), "base directory to put downloads")

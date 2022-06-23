@@ -34,20 +34,20 @@ var initCmd = &cobra.Command{
 examples:
 
 // via command line flags
-ssdownloader init --ss-api-key 2ufjwid --ss-api-secret afj292 --zendesk-domain test --zendesk-email test@example.com --zendesk-token 3jkljf --download-dir /opt/sendsafely
+ssdownloader init --ss-api-key 2ufjwid --ss-api-secret afj292 --zendesk-subdomain test --zendesk-email test@example.com --zendesk-token 3jkljf --download-dir /opt/sendsafely
 
 // via prompts
 ssdownloader init
 > (sendsafely api key): 2ufjwid
 > (sendsafely api secret): afj292
-> (zendesk domain): test
+> (zendesk subdomain): test
 > (zendesk email): test@example.com
 > (zendesk token): 3jkljf
 `,
 
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if C.SsApiKey != "" {
+		if C.SsApiKey == "" {
 			fmt.Print("(sendsafely api key):")
 			n, err := fmt.Scanln(&C.SsApiKey)
 			if err != nil {
@@ -58,7 +58,7 @@ ssdownloader init
 				os.Exit(1)
 			}
 		}
-		if C.SsApiSecret != "" {
+		if C.SsApiSecret == "" {
 			fmt.Print("(sendsafely api secret):")
 			n, err := fmt.Scanln(&C.SsApiSecret)
 			if err != nil {
@@ -70,8 +70,8 @@ ssdownloader init
 			}
 		}
 
-		if C.ZendeskDomain != "" {
-			fmt.Print("(zendesk domain):")
+		if C.ZendeskDomain == "" {
+			fmt.Print("(zendesk subdomain):")
 			n, err := fmt.Scanln(&C.ZendeskDomain)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
 				log.Fatal(err)
@@ -81,7 +81,7 @@ ssdownloader init
 			}
 		}
 
-		if C.ZendeskEmail != "" {
+		if C.ZendeskEmail == "" {
 			fmt.Print("(zendesk email):")
 			n, err := fmt.Scanln(&C.ZendeskEmail)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
@@ -92,7 +92,7 @@ ssdownloader init
 			}
 		}
 
-		if C.ZendeskToken != "" {
+		if C.ZendeskToken == "" {
 			fmt.Print("(zendesk token):")
 			n, err := fmt.Scanln(&C.ZendeskToken)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {

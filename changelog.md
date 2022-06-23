@@ -1,3 +1,7 @@
+v0.2.2
+------
+* had init check for prompt backwords now works
+* updated docs and help to show subdmain
 v0.2.1
 ------
 * require init to have certain parameters
