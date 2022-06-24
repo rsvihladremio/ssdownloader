@@ -21,18 +21,40 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
 
+func RemoveAnySuffix(fileName string) string {
+	suffixLoc := strings.LastIndex(fileName, ".")
+	if suffixLoc == -1 {
+		return fileName
+	}
+	newFileName := fileName[:suffixLoc]
+	return newFileName
+}
+
+func FindNumberedSuffix(fileName string) (bool, error) {
+	match, err := regexp.MatchString("^.+\\.\\d+$", fileName) //TODO convert to struct function and compile regex, can also easy capture suffix as group and remove it from string
+	if err != nil {
+		return false, fmt.Errorf("error in regex %v trying to find suffix for string %v", err, fileName)
+	}
+	return match, nil
+}
+
 func CombineFiles(fileNames []string) (string, error) {
 
 	sort.Strings(fileNames)
-	firstFile := fileNames[0]
-	if !strings.HasSuffix(firstFile, ".1") {
-		return "", fmt.Errorf("expected suffix of .1 but was %v", filepath.Ext(firstFile))
+	firstFile := filepath.Clean(fileNames[0])
+	match, err := FindNumberedSuffix(firstFile)
+	if err != nil {
+		return "", fmt.Errorf("unable to find suffix for file '%v' with error '%v'", firstFile, err)
 	}
-	newFileName := filepath.Clean(strings.TrimSuffix(firstFile, ".1"))
+	if !match {
+		return "", fmt.Errorf("expected suffix with a number but was '%v' for file '%v'", filepath.Ext(firstFile), firstFile)
+	}
+	newFileName := RemoveAnySuffix(firstFile)
 	if len(fileNames) == 1 {
 		//optimize and skip the copy step
 		if err := os.Rename(firstFile, newFileName); err != nil {
@@ -40,7 +62,7 @@ func CombineFiles(fileNames []string) (string, error) {
 		}
 		return newFileName, nil
 	}
-	newFileHandle, err := os.Create(newFileName)
+	newFileHandle, err := os.Create(filepath.Clean(newFileName))
 	if err != nil {
 		return "", fmt.Errorf("cannot create file '%v' due to error '%v'", newFileName, err)
 	}
