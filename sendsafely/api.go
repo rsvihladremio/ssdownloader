@@ -179,3 +179,33 @@ func (s *SendSafelyClient) GetDownloadUrlsForFile(p SendSafelyPackage, fileId, k
 
 	return s.parser.ParseDownloadUrls(string(r.Body()))
 }
+
+func (s *SendSafelyClient) GetContacts() (string, error) {
+	// validating client is set in the first place
+	if s.client == nil {
+		return "", errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")
+	}
+	now := time.Now()
+	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
+	ts := now.Format("2006-02-03T15:04:05-0700")
+	// adding package and packageId to the base send safely URL. This is a quirk documented under URL_PATH in the sendsafely docs above
+	urlPath := strings.Join([]string{"/api", "v2.0", "enterprise"}, "/")
+
+	sig, err := s.generateRequestSignature(ts, urlPath, "")
+	if err != nil {
+		return "", fmt.Errorf("unexpected error generating request signature '%v'", err)
+	}
+	//this is actually usable by the rest api unlike the urlPath
+	requestPath := strings.Join([]string{SS_URL, "enterprise"}, "/")
+	// add the required sendsafely headers to the request is accepted and then submit the request
+	r, err := s.client.R().
+		SetHeader("ss-api-key", s.ssApiKey).
+		SetHeader("ss-request-timestamp", ts).
+		SetHeader("ss-request-signature", sig).
+		Get(requestPath)
+	if err != nil {
+		return "", fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
+	}
+
+	return string(r.Body()), nil
+}

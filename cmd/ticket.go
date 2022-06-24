@@ -59,7 +59,7 @@ var ticketCmd = &cobra.Command{
 		}
 		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, password, C.ZendeskDomain)
 		ticketId := args[0]
-		results, err := zendeskApi.GetTicketComents(ticketId)
+		results, err := zendeskApi.GetSendSafelyLinksFromTicket(ticketId)
 		if err != nil {
 			log.Fatal(err)
 		}

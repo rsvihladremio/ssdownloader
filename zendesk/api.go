@@ -65,7 +65,20 @@ import (
 // 	  }
 // 	]
 //   }
-func (z *ZenDeskAPI) GetTicketComents(ticketId string) ([]string, error) {
+func (z *ZenDeskAPI) GetSendSafelyLinksFromTicket(ticketId string) ([]string, error) {
+	body, err := z.GetTicketCommentsJSON(ticketId)
+	if err != nil {
+		return []string{}, err
+	}
+	urls, err := GetSendSafelyLinksFromComments(body)
+	if err != nil {
+		return []string{}, fmt.Errorf("unable parse comments with error '%v'", err)
+	}
+
+	return urls, nil
+}
+
+func (z *ZenDeskAPI) GetTicketCommentsJSON(ticketId string) (string, error) {
 	url := fmt.Sprintf("https://%v.zendesk.com/api/v2/tickets/%v/comments.json", z.subDomain, ticketId)
 	auth := fmt.Sprintf("%v/token:%v", z.username, z.password)
 	base64Auth := base64.StdEncoding.EncodeToString([]byte(auth))
@@ -74,14 +87,9 @@ func (z *ZenDeskAPI) GetTicketComents(ticketId string) ([]string, error) {
 		SetHeader("Authorization", fmt.Sprintf("Basic %v", base64Auth)).
 		Get(url)
 	if err != nil {
-		return []string{}, fmt.Errorf("unable to read ticket comments with error '%v'", err)
+		return "", fmt.Errorf("unable to read ticket comments with error '%v'", err)
 	}
-	urls, err := GetSendSafelyLinksFromComments(string(r.Body()))
-	if err != nil {
-		return []string{}, fmt.Errorf("unable parse comments with error '%v'", err)
-	}
-
-	return urls, nil
+	return string(r.Body()), nil
 }
 
 type ZenDeskAPI struct {

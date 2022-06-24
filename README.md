@@ -16,6 +16,11 @@ On Linux, Mac or WSL do the following:
 ```sh
 $ curl -sSfL https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install | sh 
 $ ssdownloader init
+> (sendsafely api key): 2ufjwid
+> (sendsafely api secret): afj292
+> (zendesk subdomain): test
+> (zendesk email): test@example.com
+> (zendesk token): 3jkljf
 $ ssdownloader ticket 9999 
 $ ssdownloader main-a3caa66-darwin-amd64
 
