@@ -111,13 +111,15 @@ var ticketCmd = &cobra.Command{
 				}
 			}
 		}
-		attachments, err := zendesk.GetAttachementsFromComments(results)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, a := range attachments {
-			if err := DownloadNonSendSafelyLink(a, ticketId); err != nil {
-				log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
+		if !onlySendSafelyLinks {
+			attachments, err := zendesk.GetAttachementsFromComments(results)
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, a := range attachments {
+				if err := DownloadNonSendSafelyLink(a, ticketId); err != nil {
+					log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
+				}
 			}
 		}
 	},

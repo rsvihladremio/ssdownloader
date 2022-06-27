@@ -1,3 +1,8 @@
+v0.3.0
+------
+* now downloads attachments by default
+* can skip attachmments with --sendsafely-only flag
+
 v0.2.5
 ------
 * verifies file size after download matches
