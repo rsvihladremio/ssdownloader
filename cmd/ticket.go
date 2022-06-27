@@ -18,7 +18,9 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 
@@ -46,6 +48,31 @@ var ticketCmd = &cobra.Command{
 		`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		if CpuProfile != "" {
+			f, err := os.Create(CpuProfile)
+			if err != nil {
+				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CpuProfile, err)
+			}
+			if err := pprof.StartCPUProfile(f); err != nil {
+				log.Fatalf("unable to start cpu profiling due to error %v", err)
+			}
+			defer pprof.StopCPUProfile()
+		}
+		if MemProfile != "" {
+			f, err := os.Create(MemProfile)
+			if err != nil {
+				log.Fatalf("unable to create mem profile at '%v' due to error '%v'", MemProfile, err)
+			}
+			defer func() {
+				if err := f.Close(); err != nil {
+					log.Printf("WARN unable to close file handle for file '%v' due to error '%v'", MemProfile, err)
+				}
+			}()
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				log.Fatalf("unable to start mem profiling due to error '%v'", err)
+			}
+
+		}
 		password := ""
 		if useZendeskPassword {
 			fmt.Println("enter password:")
@@ -57,7 +84,7 @@ var ticketCmd = &cobra.Command{
 		} else {
 			password = C.ZendeskToken
 		}
-		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, password, C.ZendeskDomain)
+		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
 		ticketId := args[0]
 		results, err := zendeskApi.GetTicketComents(ticketId)
 		if err != nil {
@@ -69,7 +96,7 @@ var ticketCmd = &cobra.Command{
 				log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 			}
 			packageId := linkParts.PackageCode
-			err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId, packageId))
+			err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId, packageId), Verbose)
 			if err != nil {
 				log.Fatal(err)
 			}

@@ -92,7 +92,7 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
 	}
-	for i := 26; i < 28; i++ {
+	for i := 1; i < 21; i++ {
 		newFile := filepath.Join(dirToGenerate, fmt.Sprintf("mylog.txt.%v", i))
 		err = os.WriteFile(newFile, []byte(fmt.Sprintf("row %v\n", i)), 0644)
 		if err != nil {
@@ -116,7 +116,7 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 	for _, e := range entries {
 		files = append(files, filepath.Join(dirToGenerate, e.Name()))
 	}
-	f, err := CombineFiles(files)
+	f, err := CombineFiles(files, false)
 	if err != nil {
 		t.Fatalf("unexpected error combining files %v", err)
 	}
@@ -132,16 +132,13 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 			lines = append(lines, line)
 		}
 	}
-	if len(lines) != 2 {
-		t.Fatalf("expected 2 but got %v for array %#v", len(lines), lines)
+	if len(lines) != 20 {
+		t.Fatalf("expected 20 but got %v for array %#v", len(lines), lines)
 	}
-
-	expectedLine := "row 26"
-	if lines[0] != expectedLine {
-		t.Errorf("unexpected '%v' from line 1 but was '%v'", expectedLine, lines[0])
-	}
-	expectedLine = "row 27"
-	if lines[1] != expectedLine {
-		t.Errorf("unexpected '%v' from line 2 but was '%v'", expectedLine, lines[1])
+	for i := 0; i < 20; i++ {
+		expectedLine := fmt.Sprintf("row %v", i+1)
+		if lines[i] != expectedLine {
+			t.Errorf("unexpected '%v' from line %v but was '%v'", expectedLine, i, lines[i])
+		}
 	}
 }

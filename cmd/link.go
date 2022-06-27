@@ -74,7 +74,7 @@ var linkCmd = &cobra.Command{
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageId := linkParts.PackageCode
-		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("packages", packageId))
+		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("packages", packageId), Verbose)
 		if err != nil {
 			log.Fatal(err)
 		}

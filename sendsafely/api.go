@@ -16,11 +16,14 @@
 package sendsafely
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -37,10 +40,11 @@ type SendSafelyClient struct {
 	client      *resty.Client
 	ssApiKey    string
 	ssApiSecret string
+	verbose     bool
 }
 
 // NewSendSafelyClient is the preferred way to initialize SendSafelyClient
-func NewSendSafelyClient(ssApiKey, ssApiSecret string) *SendSafelyClient {
+func NewSendSafelyClient(ssApiKey, ssApiSecret string, verbose bool) *SendSafelyClient {
 	client := resty.New()
 
 	return &SendSafelyClient{
@@ -48,6 +52,7 @@ func NewSendSafelyClient(ssApiKey, ssApiSecret string) *SendSafelyClient {
 		ssApiSecret: ssApiSecret,
 		client:      client,
 		parser:      &SendSafelyApiParser{},
+		verbose:     verbose,
 	}
 }
 
@@ -77,7 +82,16 @@ func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPacka
 	if err != nil {
 		return SendSafelyPackage{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
 	}
-	return s.parser.ParsePackage(string(r.Body()))
+	rawResponseBody := r.Body()
+	if s.verbose {
+		var prettyJsonBuffer bytes.Buffer
+		if err := json.Indent(&prettyJsonBuffer, rawResponseBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for sendsafely package id %v string '%v'", packageId, string(rawResponseBody))
+		} else {
+			log.Printf("DEBUG: Package %v Reponse '%v'", packageId, prettyJsonBuffer.String())
+		}
+	}
+	return s.parser.ParsePackage(string(rawResponseBody))
 }
 
 // GenerateRequestSignature is a utility method to generate the ss-request-signature header
@@ -176,6 +190,14 @@ func (s *SendSafelyClient) GetDownloadUrlsForFile(p SendSafelyPackage, fileId, k
 	if err != nil {
 		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
 	}
-
-	return s.parser.ParseDownloadUrls(string(r.Body()))
+	rawResponseBody := r.Body()
+	if s.verbose {
+		var prettyJsonBuffer bytes.Buffer
+		if err := json.Indent(&prettyJsonBuffer, rawResponseBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for sendsafely urls for package id %v string '%v'", p.PackageId, string(rawResponseBody))
+		} else {
+			log.Printf("DEBUG: Package %v Download Urls '%v'", p.PackageId, prettyJsonBuffer.String())
+		}
+	}
+	return s.parser.ParseDownloadUrls(string(rawResponseBody))
 }

@@ -33,9 +33,9 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string) error {
+func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
 
-	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret)
+	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret, verbose)
 	p, err := client.RetrievePackgeById(packageId)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 					log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
 					return
 				}
-				newFile, err := CombineFiles(fileNames)
+				newFile, err := CombineFiles(fileNames, verbose)
 				if err != nil {
 					log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
 				} else {

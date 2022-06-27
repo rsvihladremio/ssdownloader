@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -43,9 +44,25 @@ func FindNumberedSuffix(fileName string) (bool, error) {
 	return match, nil
 }
 
-func CombineFiles(fileNames []string) (string, error) {
-
-	sort.Strings(fileNames)
+func CombineFiles(fileNames []string, verbose bool) (string, error) {
+	sort.SliceStable(fileNames, func(i, j int) bool {
+		one := fileNames[i]
+		two := fileNames[j]
+		suffixOne := strings.Trim(filepath.Ext(one), ".")
+		suffixTwo := strings.Trim(filepath.Ext(two), ".")
+		intOne, err := strconv.Atoi(suffixOne)
+		if err != nil {
+			log.Fatalf("not able to parse suffix %v with error %v", suffixOne, err)
+		}
+		intTwo, err := strconv.Atoi(suffixTwo)
+		if err != nil {
+			log.Fatalf("not able to parse suffix %v with error %v", suffixTwo, err)
+		}
+		return intOne < intTwo
+	})
+	if verbose {
+		log.Printf("DEBUG: combining the following files: %v\n-", strings.Join(fileNames, "\n-"))
+	}
 	firstFile := filepath.Clean(fileNames[0])
 	match, err := FindNumberedSuffix(firstFile)
 	if err != nil {
