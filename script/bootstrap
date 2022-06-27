@@ -7,6 +7,15 @@ set -e
 
 cd "$(dirname "$0")/.."
 
+echo "Checking if goveralls is installed…"
+date "+%H:%M:%S"
+
+if ! type "goveralls" > /dev/null; then
+    echo "goveralls not found installing…"
+    date "+%H:%M:%S"
+    go install github.com/mattn/goveralls@latest
+fi
+
 echo "Checking if golaningci-lint is installed…"
 date "+%H:%M:%S"
 

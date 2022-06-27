@@ -8,5 +8,5 @@ cd "$(dirname "$0")/.."
 
 [ -z "$DEBUG" ] || set -x
 
-go test ./... -covermode=count -coverprofile=coverage.out
-go tool cover -func=coverage.out
+go test -race -covermode atomic -coverprofile=covprofile ./...
+go tool cover -func=covprofile

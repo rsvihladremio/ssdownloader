@@ -23,3 +23,5 @@ go.work
 
 # OS X finder files
 .DS_Store
+
+covprofile
