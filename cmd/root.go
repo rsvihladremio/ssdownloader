@@ -28,6 +28,7 @@ import (
 var cfgFile string
 
 var C config.Config
+var Verbose bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -81,7 +82,7 @@ func DefaultDownloadDir() string {
 
 func init() {
 	fmt.Println(PrintHeader(Version, platform, arch, GitSha))
-
+	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose logging")
 	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
 	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-subdomain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")

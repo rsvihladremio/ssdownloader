@@ -16,8 +16,11 @@
 package zendesk
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -76,7 +79,16 @@ func (z *ZenDeskAPI) GetTicketComents(ticketId string) ([]string, error) {
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to read ticket comments with error '%v'", err)
 	}
-	urls, err := GetSendSafelyLinksFromComments(string(r.Body()))
+	rawBody := r.Body()
+	if z.verbose {
+		var prettyJsonBuffer bytes.Buffer
+		if err := json.Indent(&prettyJsonBuffer, rawBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for ticket %v printing string '%v'", ticketId, string(rawBody))
+		} else {
+			log.Printf("DEBUG: Ticket %v Comments Contents '%v'", ticketId, prettyJsonBuffer.String())
+		}
+	}
+	urls, err := GetSendSafelyLinksFromComments(string(rawBody))
 	if err != nil {
 		return []string{}, fmt.Errorf("unable parse comments with error '%v'", err)
 	}
@@ -89,13 +101,15 @@ type ZenDeskAPI struct {
 	username  string
 	password  string
 	subDomain string
+	verbose   bool
 }
 
-func NewZenDeskAPI(username, password, subDomain string) *ZenDeskAPI {
+func NewZenDeskAPI(username, password, subDomain string, verbose bool) *ZenDeskAPI {
 	return &ZenDeskAPI{
 		subDomain: subDomain,
 		username:  username,
 		password:  password,
 		client:    *resty.New(),
+		verbose:   verbose,
 	}
 }

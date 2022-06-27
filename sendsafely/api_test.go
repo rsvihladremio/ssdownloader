@@ -26,7 +26,7 @@ import (
 // This is the default happy path test, no errors
 func TestRetrievePackgeById(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewSendSafelyClient("myApiKey", "mySecret")
+	ssClient := NewSendSafelyClient("myApiKey", "mySecret", false)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -117,7 +117,7 @@ func TestRetrievePackgeById(t *testing.T) {
 // the bad auth case, this mimics the actual production api as of 2022-06-20
 func TestRetrievePackageHasBadAuth(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewSendSafelyClient("myApiKey", "mySecret")
+	ssClient := NewSendSafelyClient("myApiKey", "mySecret", false)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -146,7 +146,7 @@ func TestRetrievePackageHasBadAuth(t *testing.T) {
 // the main purpose of this test is not to explain the function but to lock in time the behavior
 // so that if there is a breaking change we will catch it
 func TestGenerateSignature(t *testing.T) {
-	ssClient := NewSendSafelyClient("", "")
+	ssClient := NewSendSafelyClient("", "", false)
 	ts, err := time.Parse(time.RFC3339, "2022-05-31T18:11:21Z")
 	if err != nil {
 		t.Fatalf("bad test setup since we were not able to use our datetime due to error '%v'", err)

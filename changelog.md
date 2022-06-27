@@ -1,3 +1,8 @@
+v0.2.4
+------
+* package id is shortened to match what zendesk shows
+* a trivial sort bug was breaking larger files
+
 v0.2.3
 ------
 * use package name for prefix
