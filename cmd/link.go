@@ -18,7 +18,6 @@ package cmd
 import (
 	"log"
 	"os"
-	"path/filepath"
 	"runtime/pprof"
 
 	"github.com/spf13/cobra"
@@ -74,7 +73,7 @@ var linkCmd = &cobra.Command{
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageId := linkParts.PackageCode
-		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("packages", packageId), Verbose)
+		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
 			log.Fatal(err)
 		}

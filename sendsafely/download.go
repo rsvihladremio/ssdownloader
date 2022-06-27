@@ -40,7 +40,6 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 	if err != nil {
 		return err
 	}
-
 	//making top level download directory if it does not exist
 	_, err = os.Stat(c.DownloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
@@ -52,8 +51,9 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		}
 	}
 
+	shortPackageId := p.PackageId
 	//make config directory for this package code if it does not exist
-	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload)
+	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload, shortPackageId)
 
 	_, err = os.Stat(downloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
