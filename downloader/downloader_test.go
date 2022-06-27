@@ -38,7 +38,10 @@ func TestDownloadFile(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", url, responder)
 	fileName := fmt.Sprintf("%v/testFile.json", t.TempDir())
-	DownloadFile(fileName, url)
+	err := DownloadFile(fileName, url)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
 	b, err := os.ReadFile(fileName)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
