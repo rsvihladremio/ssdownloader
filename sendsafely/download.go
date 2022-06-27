@@ -33,7 +33,7 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-func SkipFile(fileName string, fileSize int64, verbose bool) bool {
+func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	fi, err := os.Stat(fileName)
 	if err != nil {
 		if verbose {
@@ -90,7 +90,7 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		fileSize := f.FileSize
 		fileId := f.FileId
 		fullPath := filepath.Join(downloadDir, fileName)
-		if SkipFile(fullPath, fileSize, verbose) {
+		if FileSizeMatches(fullPath, fileSize, verbose) {
 			log.Printf("file %v already downloaded skipping", fullPath)
 			continue
 		}
@@ -169,6 +169,12 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 				log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
 			} else {
 				log.Printf("file '%v is complete", newFile)
+			}
+			if !FileSizeMatches(fullPath, fileSize, verbose) {
+				log.Printf("ERROR: file %v failed verification, removing", fullPath)
+				if err := os.Remove(newFile); err != nil {
+					log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
+				}
 			}
 		}()
 

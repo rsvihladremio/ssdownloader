@@ -1,3 +1,8 @@
+v0.2.5
+------
+* verifies file size after download matches
+* will not redownload a file already downloaded now
+
 v0.2.4
 ------
 * package id is shortened to match what zendesk shows
