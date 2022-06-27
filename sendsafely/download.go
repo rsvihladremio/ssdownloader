@@ -18,14 +18,13 @@ package sendsafely
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
+	"github.com/rsvihladremio/ssdownloader/downloader"
 )
 
 type PartRequests struct {
@@ -136,7 +135,7 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 						// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
 						tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
 						downloadLoc := filepath.Join(downloadDir, tmpName)
-						err = downloadFile(downloadLoc, downloadUrl)
+						err = downloader.DownloadFile(downloadLoc, downloadUrl)
 						if err != nil {
 							log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
 							return
@@ -180,45 +179,6 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 
 	}
 	apiCalls.Wait()
-	return nil
-}
-
-func downloadFile(fileName, url string) error {
-	// making sure there are no goofy file names that overwrite critical files
-	cleanedFileName := filepath.Clean(fileName)
-	f, err := os.Create(cleanedFileName)
-	if err != nil {
-		return fmt.Errorf("unable to create the destination file '%v' due to error '%v'", cleanedFileName, err)
-	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", cleanedFileName, err)
-		}
-	}()
-	// is technically a security violation according to https://securego.io/docs/rules/g107.html
-	// but in reality based on the application is unavoidable and a risk of using SendSafely
-	// ignoring the rule in the ./script/audit file. Used suggestion from
-	// https://stackoverflow.com/questions/70281883/golang-untaint-url-variable-to-fix-gosec-warning-g107
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve url '%v' due to error '%v'", url, err)
-	}
-	defer func() {
-		err = resp.Body.Close()
-		if err != nil {
-			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
-		}
-	}()
-	//TODO make optional with verbose flag
-	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
-	//TODO make buffer size adjustable
-	buf := make([]byte, 4096*1024)
-	_, err = io.CopyBuffer(f, resp.Body, buf)
-	if err != nil {
-		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
-	}
-
 	return nil
 }
 
