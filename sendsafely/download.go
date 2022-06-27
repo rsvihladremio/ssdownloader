@@ -33,6 +33,21 @@ type PartRequests struct {
 	EndSegment   int
 }
 
+func SkipFile(fileName string, fileSize int64, verbose bool) bool {
+	fi, err := os.Stat(fileName)
+	if err != nil {
+		if verbose {
+			log.Printf("DEBUG: unable to check file size for %v due to error %v", fileName, err)
+		}
+		return false
+	}
+
+	if verbose {
+		log.Printf("DEBUG: file comparison is %v current versus %v to download", fi.Size(), fileSize)
+	}
+	return fi.Size() == fileSize
+}
+
 func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
 
 	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret, verbose)
@@ -69,18 +84,32 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 	var apiCalls sync.WaitGroup
 
 	for _, f := range p.Files {
-		log.Printf("downloading %v", f.FileName)
+
 		fileName := f.FileName
-		//TODO make part of verbose flag
-		//log.Printf("file %v has %v parts and a total file size of %v", f.FileName, f.Parts, f.FileSize)
-		segmentRequestInformation := calculateExecutionCalls(f.Parts)
-		for _, segment := range segmentRequestInformation {
-			start := segment.StartSegment
-			end := segment.EndSegment
-			apiCalls.Add(1)
-			fileId := f.FileId
-			go func() {
-				defer apiCalls.Done()
+		parts := f.Parts
+		fileSize := f.FileSize
+		fileId := f.FileId
+		fullPath := filepath.Join(downloadDir, fileName)
+		if SkipFile(fullPath, fileSize, verbose) {
+			log.Printf("file %v already downloaded skipping", fullPath)
+			continue
+		}
+		if verbose {
+			log.Printf("file %v has %v parts and a total file size of %v", fileName, parts, fileSize)
+		}
+		log.Printf("downloading %v", fullPath)
+
+		apiCalls.Add(1)
+		go func() {
+			defer apiCalls.Done()
+			var fileNames []string
+			var errMutex sync.Mutex
+			var failedFiles []string
+			segmentRequestInformation := calculateExecutionCalls(parts)
+			for _, segment := range segmentRequestInformation {
+				start := segment.StartSegment
+				end := segment.EndSegment
+
 				urls, err := client.GetDownloadUrlsForFile(
 					p,
 					fileId,
@@ -94,9 +123,6 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 				}
 				var wgDownloadUrls sync.WaitGroup
 				var m sync.Mutex
-				var fileNames []string
-				var errMutex sync.Mutex
-				var failedFiles []string
 				for i := range urls {
 					index := i
 
@@ -127,8 +153,9 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 
 							return
 						}
-						//TODO behind verbose flag
-						//log.Printf("file '%v' is decrypted", newFileName)
+						if verbose {
+							log.Printf("file '%v' is decrypted", newFileName)
+						}
 					}()
 				}
 				wgDownloadUrls.Wait()
@@ -136,14 +163,15 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 					log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
 					return
 				}
-				newFile, err := CombineFiles(fileNames, verbose)
-				if err != nil {
-					log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
-				} else {
-					log.Printf("file '%v is complete", newFile)
-				}
-			}()
-		}
+			}
+			newFile, err := CombineFiles(fileNames, verbose)
+			if err != nil {
+				log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
+			} else {
+				log.Printf("file '%v is complete", newFile)
+			}
+		}()
+
 	}
 	apiCalls.Wait()
 	return nil
