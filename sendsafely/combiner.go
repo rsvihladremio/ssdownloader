@@ -16,6 +16,7 @@
 package sendsafely
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -44,7 +45,24 @@ func FindNumberedSuffix(fileName string) (bool, error) {
 	return match, nil
 }
 
+type InvalidSuffixErr struct {
+	FileName string
+}
+
+func (i InvalidSuffixErr) Error() string {
+	return fmt.Sprintf("expected suffix with a number but was '%v' for file '%v'", filepath.Ext(i.FileName), i.FileName)
+}
+
+type SortingErr struct {
+	BaseErr error
+}
+
+func (s SortingErr) Error() string {
+	return fmt.Sprintf("unable to sort due to the following error '%v'", s.BaseErr)
+}
+
 func CombineFiles(fileNames []string, verbose bool) (string, error) {
+	var sortErrors []string
 	sort.SliceStable(fileNames, func(i, j int) bool {
 		one := fileNames[i]
 		two := fileNames[j]
@@ -52,14 +70,21 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 		suffixTwo := strings.Trim(filepath.Ext(two), ".")
 		intOne, err := strconv.Atoi(suffixOne)
 		if err != nil {
-			log.Fatalf("not able to parse suffix %v with error %v", suffixOne, err)
+			// using strings so I can easily create one error out of this later
+			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixOne, err))
+			return false
 		}
 		intTwo, err := strconv.Atoi(suffixTwo)
 		if err != nil {
-			log.Fatalf("not able to parse suffix %v with error %v", suffixTwo, err)
+			// using strings so I can easily create one error out of this later
+			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixTwo, err))
+			return false
 		}
 		return intOne < intTwo
 	})
+	if len(sortErrors) > 0 {
+		return "", SortingErr{BaseErr: errors.New(strings.Join(sortErrors, ","))}
+	}
 	if verbose {
 		log.Printf("DEBUG: combining the following files: %v\n-", strings.Join(fileNames, "\n-"))
 	}
@@ -69,7 +94,9 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 		return "", fmt.Errorf("unable to find suffix for file '%v' with error '%v'", firstFile, err)
 	}
 	if !match {
-		return "", fmt.Errorf("expected suffix with a number but was '%v' for file '%v'", filepath.Ext(firstFile), firstFile)
+		return "", InvalidSuffixErr{
+			FileName: firstFile,
+		}
 	}
 	newFileName := RemoveAnySuffix(firstFile)
 	if len(fileNames) == 1 {

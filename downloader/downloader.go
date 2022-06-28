@@ -24,10 +24,6 @@ import (
 	"path/filepath"
 )
 
-type GenericDownloader struct {
-	bufferSizeKB int
-}
-
 type IllegalBufferSize struct {
 	BufferSizeKB int
 }
@@ -41,8 +37,11 @@ func NewGenericDownloader(bufferSizeKB int) *GenericDownloader {
 		log.Println("buffer size cannot be smaller than 1 setting to default of 4096")
 		bufferSizeKB = 4096
 	}
-
 	return &GenericDownloader{bufferSizeKB: bufferSizeKB}
+}
+
+type GenericDownloader struct {
+	bufferSizeKB int
 }
 
 func (d *GenericDownloader) DownloadFile(fileName, url string) error {
