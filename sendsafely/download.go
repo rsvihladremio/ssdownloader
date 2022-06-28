@@ -21,7 +21,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/rsvihladremio/ssdownloader/downloader"
@@ -96,7 +95,6 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 		log.Printf("downloading %v", fullPath)
 
 		var fileNames []string
-		var errMutex sync.Mutex
 		var failedFiles []string
 		segmentRequestInformation := calculateExecutionCalls(parts)
 		for _, segment := range segmentRequestInformation {
@@ -112,13 +110,11 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 			)
 			if err != nil {
 				log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
-				continue //in threaded version is return
+				continue
 			}
-			//var m sync.Mutex
 			for i := range urls {
 				index := i
 
-				//spawning yet another go routine so adding this to the wait group
 				url := urls[index]
 				downloadUrl := url.Url
 				filePart := url.Part
@@ -128,19 +124,15 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 				err = d.DownloadFile(downloadLoc, downloadUrl)
 				if err != nil {
 					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
-					continue //return
+					continue
 				}
 				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
-				//m.Lock()
 				fileNames = append(fileNames, newFileName)
-				//m.Unlock()
 				if err != nil {
-					errMutex.Lock()
 					failedFiles = append(failedFiles, newFileName)
-					errMutex.Unlock()
 					log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
 
-					continue //return
+					continue
 				}
 				if verbose {
 					log.Printf("file '%v' is decrypted", newFileName)
@@ -148,7 +140,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 			}
 			if len(failedFiles) > 0 {
 				log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
-				continue // in threaded version is return
+				continue
 			}
 		}
 		newFile, err := CombineFiles(fileNames, verbose)
