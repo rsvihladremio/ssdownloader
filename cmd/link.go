@@ -22,6 +22,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/link"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
 )
@@ -73,7 +74,8 @@ var linkCmd = &cobra.Command{
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageId := linkParts.PackageCode
-		err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, "packages", Verbose)
+		d := downloader.NewGenericDownloader(DownloadBufferSize)
+		err = sendsafely.DownloadFilesFromPackage(d, packageId, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
 			log.Fatal(err)
 		}

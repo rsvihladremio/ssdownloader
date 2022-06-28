@@ -16,6 +16,7 @@
 package sendsafely
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -141,4 +142,167 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 			t.Errorf("unexpected '%v' from line %v but was '%v'", expectedLine, i, lines[i])
 		}
 	}
+}
+func TestNoOpCombining(t *testing.T) {
+
+	dirToGenerate := filepath.Join("testdata", "combining")
+	err := os.MkdirAll(dirToGenerate, 0755)
+	if err != nil {
+		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
+	}
+	newFile := filepath.Join(dirToGenerate, "mylog.txt.1")
+	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
+		}
+	}()
+
+	d, err := os.Open(dirToGenerate)
+	if err != nil {
+		t.Fatalf("unexpected error reading dir %v %v", dirToGenerate, err)
+	}
+	entries, err := d.ReadDir(0)
+	if err != nil {
+		t.Fatalf("unable to list dirs %v", err)
+	}
+	var files []string
+	for _, e := range entries {
+		files = append(files, filepath.Join(dirToGenerate, e.Name()))
+	}
+	f, err := CombineFiles(files, false)
+	if err != nil {
+		t.Fatalf("unexpected error combining files %v", err)
+	}
+	defer os.Remove(f)
+	contents, err := os.ReadFile(f)
+	if err != nil {
+		t.Fatalf("unexpected error reading combined file with error %v", err)
+	}
+	l := strings.Split(string(contents), "\n")
+	var lines []string
+	for _, line := range l {
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	if len(lines) != 1 {
+		t.Fatalf("expected 1 but got %v for array %#v", len(lines), lines)
+	}
+	expectedLine := "row 1"
+	if lines[0] != expectedLine {
+		t.Errorf("unexpected '%v' from line 1 but was '%v'", expectedLine, lines[0])
+	}
+}
+
+func TestCombiningOneBadSuffix(t *testing.T) {
+
+	dirToGenerate := filepath.Join(t.TempDir(), "combining")
+	err := os.MkdirAll(dirToGenerate, 0755)
+	if err != nil {
+		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
+	}
+	newFile := filepath.Join(dirToGenerate, "mylog.txt")
+	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
+		}
+	}()
+
+	_, err = CombineFiles([]string{newFile}, false)
+	if err == nil {
+		t.Fatalf("expected error but did not have one")
+	}
+	if !errors.Is(err, InvalidSuffixErr{FileName: newFile}) {
+		t.Errorf("expected error to be InvalidSuffixErr but was %v", err)
+	}
+	expectedErr := fmt.Sprintf("expected suffix with a number but was '.txt' for file '%v'", newFile)
+	if err.Error() != expectedErr {
+		t.Errorf("expected error '%v' but was '%v'", err.Error(), expectedErr)
+	}
+}
+
+func TestCombiningSeveralBadSuffixes(t *testing.T) {
+
+	dirToGenerate := filepath.Join(t.TempDir(), "combining")
+	err := os.MkdirAll(dirToGenerate, 0755)
+	if err != nil {
+		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
+	}
+	newFile := filepath.Join(dirToGenerate, "mylog.txt.1")
+	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
+		}
+	}()
+	newFile2 := filepath.Join(dirToGenerate, "mylog.txt.two")
+	err = os.WriteFile(newFile2, []byte("row 2\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile2, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile2); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile2, err)
+		}
+	}()
+
+	_, err = CombineFiles([]string{newFile, newFile2}, false)
+	if err == nil {
+		t.Fatalf("expected error but did not have one")
+	}
+	expectedErr := SortingErr{BaseErr: fmt.Errorf("not able to parse suffix 'two' with error 'strconv.Atoi: parsing \"two\": invalid syntax'")}
+	if err.Error() != expectedErr.Error() {
+		t.Errorf("expected error to be\n'%v' but was \n'%v'", expectedErr, err)
+	}
+
+}
+
+func TestCombiningSeveralBadSuffixesReverseOrder(t *testing.T) {
+
+	dirToGenerate := filepath.Join(t.TempDir(), "combining")
+	err := os.MkdirAll(dirToGenerate, 0755)
+	if err != nil {
+		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
+	}
+	newFile := filepath.Join(dirToGenerate, "mylog.txt.one")
+	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
+		}
+	}()
+	newFile2 := filepath.Join(dirToGenerate, "mylog.txt.2")
+	err = os.WriteFile(newFile2, []byte("row 2\n"), 0644)
+	if err != nil {
+		t.Fatalf("unable to create file %v due to error %v", newFile2, err)
+	}
+	defer func() {
+		if err := os.Remove(newFile2); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile2, err)
+		}
+	}()
+
+	_, err = CombineFiles([]string{newFile, newFile2}, false)
+	if err == nil {
+		t.Fatalf("expected error but did not have one")
+	}
+	expectedErr := SortingErr{BaseErr: fmt.Errorf("not able to parse suffix 'one' with error 'strconv.Atoi: parsing \"one\": invalid syntax'")}
+	if err.Error() != expectedErr.Error() {
+		t.Errorf("expected error to be\n'%v' but was \n'%v'", expectedErr, err)
+	}
+
 }

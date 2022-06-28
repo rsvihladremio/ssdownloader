@@ -18,14 +18,12 @@ package sendsafely
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
+	"github.com/rsvihladremio/ssdownloader/downloader"
 )
 
 type PartRequests struct {
@@ -48,7 +46,7 @@ func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	return fi.Size() == fileSize
 }
 
-func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
+func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
 
 	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret, verbose)
 	p, err := client.RetrievePackgeById(packageId)
@@ -80,9 +78,6 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		}
 	}
 
-	//naively make a lot of requests and use primitives to wait until it's all done
-	var apiCalls sync.WaitGroup
-
 	for _, f := range p.Files {
 
 		fileName := f.FileName
@@ -99,126 +94,68 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		}
 		log.Printf("downloading %v", fullPath)
 
-		apiCalls.Add(1)
-		go func() {
-			defer apiCalls.Done()
-			var fileNames []string
-			var errMutex sync.Mutex
-			var failedFiles []string
-			segmentRequestInformation := calculateExecutionCalls(parts)
-			for _, segment := range segmentRequestInformation {
-				start := segment.StartSegment
-				end := segment.EndSegment
+		var fileNames []string
+		var failedFiles []string
+		segmentRequestInformation := calculateExecutionCalls(parts)
+		for _, segment := range segmentRequestInformation {
+			start := segment.StartSegment
+			end := segment.EndSegment
 
-				urls, err := client.GetDownloadUrlsForFile(
-					p,
-					fileId,
-					keyCode,
-					start,
-					end,
-				)
-				if err != nil {
-					log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
-					return
-				}
-				var wgDownloadUrls sync.WaitGroup
-				var m sync.Mutex
-				for i := range urls {
-					index := i
-
-					//spawning yet another go routine so adding this to the wait group
-					wgDownloadUrls.Add(1)
-					go func() {
-						defer wgDownloadUrls.Done()
-						url := urls[index]
-						downloadUrl := url.Url
-						filePart := url.Part
-						// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
-						tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
-						downloadLoc := filepath.Join(downloadDir, tmpName)
-						err = downloadFile(downloadLoc, downloadUrl)
-						if err != nil {
-							log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
-							return
-						}
-						newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
-						m.Lock()
-						fileNames = append(fileNames, newFileName)
-						m.Unlock()
-						if err != nil {
-							errMutex.Lock()
-							failedFiles = append(failedFiles, newFileName)
-							errMutex.Unlock()
-							log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
-
-							return
-						}
-						if verbose {
-							log.Printf("file '%v' is decrypted", newFileName)
-						}
-					}()
-				}
-				wgDownloadUrls.Wait()
-				if len(failedFiles) > 0 {
-					log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
-					return
-				}
-			}
-			newFile, err := CombineFiles(fileNames, verbose)
+			urls, err := client.GetDownloadUrlsForFile(
+				p,
+				fileId,
+				keyCode,
+				start,
+				end,
+			)
 			if err != nil {
-				log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
-			} else {
-				log.Printf("file '%v is complete", newFile)
+				log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
+				continue
 			}
-			if !FileSizeMatches(fullPath, fileSize, verbose) {
-				log.Printf("ERROR: file %v failed verification, removing", fullPath)
-				if err := os.Remove(newFile); err != nil {
-					log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
+			for i := range urls {
+				index := i
+
+				url := urls[index]
+				downloadUrl := url.Url
+				filePart := url.Part
+				// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
+				tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
+				downloadLoc := filepath.Join(downloadDir, tmpName)
+				err = d.DownloadFile(downloadLoc, downloadUrl)
+				if err != nil {
+					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
+					continue
+				}
+				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
+				fileNames = append(fileNames, newFileName)
+				if err != nil {
+					failedFiles = append(failedFiles, newFileName)
+					log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
+					continue
+				}
+				if verbose {
+					log.Printf("file '%v' is decrypted", newFileName)
 				}
 			}
-		}()
-
-	}
-	apiCalls.Wait()
-	return nil
-}
-
-func downloadFile(fileName, url string) error {
-	// making sure there are no goofy file names that overwrite critical files
-	cleanedFileName := filepath.Clean(fileName)
-	f, err := os.Create(cleanedFileName)
-	if err != nil {
-		return fmt.Errorf("unable to create the destination file '%v' due to error '%v'", cleanedFileName, err)
-	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", cleanedFileName, err)
+			if len(failedFiles) > 0 {
+				log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
+				continue
+			}
 		}
-	}()
-	// is technically a security violation according to https://securego.io/docs/rules/g107.html
-	// but in reality based on the application is unavoidable and a risk of using SendSafely
-	// ignoring the rule in the ./script/audit file. Used suggestion from
-	// https://stackoverflow.com/questions/70281883/golang-untaint-url-variable-to-fix-gosec-warning-g107
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("unable to retrieve url '%v' due to error '%v'", url, err)
-	}
-	defer func() {
-		err = resp.Body.Close()
+		newFile, err := CombineFiles(fileNames, verbose)
 		if err != nil {
-			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
+			log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
+		} else {
+			log.Printf("file '%v is complete", newFile)
 		}
-	}()
-	//TODO make optional with verbose flag
-	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
-	//TODO make buffer size adjustable
-	buf := make([]byte, 4096*1024)
-	_, err = io.CopyBuffer(f, resp.Body, buf)
-	if err != nil {
-		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
-	}
+		if !FileSizeMatches(fullPath, fileSize, verbose) {
+			log.Printf("ERROR: file %v failed verification, removing", fullPath)
+			if err := os.Remove(newFile); err != nil {
+				log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
+			}
+		}
 
+	}
 	return nil
 }
 

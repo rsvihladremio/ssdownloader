@@ -1,0 +1,8 @@
+{
+    "SsApiKey": "ssapikey",
+    "SsApiSecret": "ssapisecret",
+    "ZendeskDomain": "tester",
+    "ZendeskEmail": "test@example.com",
+    "ZendeskToken": "zdtoken",
+    "DownloadDir": "mydir"
+}

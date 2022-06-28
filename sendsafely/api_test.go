@@ -169,5 +169,25 @@ func TestGenerateSignature(t *testing.T) {
 	if sig == sig2 {
 		t.Error("signature did not change with new time	")
 	}
+}
 
+// this tests the generated hash for the checksum field in the body
+// the main purpose of this test is not to explain the function but to lock in time the behavior
+// so that if there is a breaking change we will catch it
+func TestGenerateCheckSum(t *testing.T) {
+	ssClient := NewSendSafelyClient("", "", false)
+	checkSum := ssClient.generateChecksum("abc", "def")
+
+	// calculated this, not very meaningful to read, but this will lock the tested behavior and guard against
+	// any future regressions
+	expectedChkSum := "34ffd317a709b2ac3a848328888b8e8ed56658ac5d3f32512071579576beaa02"
+	if expectedChkSum != checkSum {
+		t.Errorf("expected '%v' but was '%v'", expectedChkSum, checkSum)
+	}
+	//validate it is always the same value
+	checkSum2 := ssClient.generateChecksum("abc", "def")
+
+	if checkSum != checkSum2 {
+		t.Error("signature changed and is not deterministic")
+	}
 }

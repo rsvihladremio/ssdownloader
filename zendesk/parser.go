@@ -20,15 +20,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
+	"time"
 
 	"github.com/valyala/fastjson"
 	"golang.org/x/net/html"
 )
 
-// GetSendSafelyLinksFromComments is parsing out the sendsafely links from the html_
+// GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
-func GetSendSafelyLinksFromComments(jsonData string) ([]string, error) {
+func GetLinksFromComments(jsonData string) ([]string, error) {
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
@@ -63,14 +63,126 @@ func GetSendSafelyLinksFromComments(jsonData string) ([]string, error) {
 			token := z.Token()
 			if token.Data == "a" {
 				for _, a := range token.Attr {
-					if a.Key == "href" && strings.HasPrefix(a.Val, "https://sendsafely") {
+					if a.Key == "href" {
 						linksFound = append(linksFound, a.Val)
 						break
 					}
 				}
-
 			}
 		}
 	}
 	return linksFound, nil
+}
+
+// Attachment maps to
+// 				{
+//					"url": "https://dremio.zendesk.com/api/v2/attachments/1.json",
+//					"id": 1,
+//					"file_name": "test.txt",
+//					"content_url": "https://tester.zendesk.com/attachments/token/abc/?name=test.txt",
+//					"mapped_content_url": "https://test.tester.com/attachments/token/abc/?name=test.txt",
+//					"content_type": "text/plain",
+//					"size": 1111,
+//					"width": null,
+//					"height": null,
+//					"inline": false,
+//					"deleted": false,
+//					"thumbnails": []
+//				}
+// with additional data from parent comment
+type Attachment struct {
+	ParentCommentDate time.Time // "created_at": "2000-01-01T11:11:07Z",
+	ParentCommentID   int64
+	FileName          string
+	ContentURL        string
+	ContentType       string
+	Size              int64
+	Deleted           bool
+}
+
+// GetLinksFromComments is parsing out the links from the html_
+// docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
+func GetAttachementsFromComments(jsonData string) ([]Attachment, error) {
+
+	jsonParser := fastjson.Parser{}
+	result, err := jsonParser.Parse(jsonData)
+	if err != nil {
+		return []Attachment{}, fmt.Errorf("parsing json data '%v' failed, error was '%v'", jsonData, err)
+	}
+	commentsValue := result.Get("comments")
+	if !commentsValue.Exists() {
+		return []Attachment{}, fmt.Errorf("parsing json data '%v' failed, missing comments field", jsonData)
+	}
+	comments, err := commentsValue.Array()
+	if err != nil {
+		return []Attachment{}, fmt.Errorf("parsing comments for jsonData '%v' failed, error was '%v'", jsonData, err)
+	}
+	var attachments []Attachment
+
+	for i, comment := range comments {
+		parentIdValue := comment.Get("id")
+		parentId, err := parentIdValue.Int64()
+		if err != nil {
+			return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'id' field a comments index %v", jsonData, err, i)
+		}
+		parentCreatedAtValue := comment.Get("created_at")
+		parentCreatedAtRaw, err := parentCreatedAtValue.StringBytes()
+		if err != nil {
+			return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for  'created_at' field a comments index %v", jsonData, err, i)
+		}
+		createdAt, err := time.Parse(time.RFC3339, string(parentCreatedAtRaw))
+		if err != nil {
+			return []Attachment{}, fmt.Errorf(" parsing datetime for '%v' failed' due to error '%v' field a comments index %v", jsonData, err, i)
+		}
+
+		attachmentsValues := comment.Get("attachments")
+		if !attachmentsValues.Exists() {
+			return []Attachment{}, fmt.Errorf("parsing comments for jsonData '%v' failed, missing attachments field in comment index %v", jsonData, i)
+		}
+		attachmentsFromJson := attachmentsValues.GetArray()
+		for ai, a := range attachmentsFromJson {
+			fileNameValue := a.Get("file_name")
+			fileNameBytes, err := fileNameValue.StringBytes()
+			if err != nil {
+				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'file_name' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+			}
+			fileName := string(fileNameBytes)
+			boolValue := a.Get("deleted")
+			isDeleted, err := boolValue.Bool()
+			if err != nil {
+				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'deleted' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+			}
+
+			contentUrlValue := a.Get("content_url")
+			contentUrlBytes, err := contentUrlValue.StringBytes()
+			if err != nil {
+				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'content_url' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+			}
+
+			contentUrl := string(contentUrlBytes)
+			contentTypeValue := a.Get("content_type")
+			contentTypeBytes, err := contentTypeValue.StringBytes()
+			if err != nil {
+				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'content_type' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+			}
+			contentType := string(contentTypeBytes)
+
+			sizeValue := a.Get("size")
+			size, err := sizeValue.Int64()
+			if err != nil {
+				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'size' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+			}
+			attachments = append(attachments, Attachment{
+				ParentCommentID:   parentId,
+				ParentCommentDate: createdAt,
+				FileName:          fileName,
+				Deleted:           isDeleted,
+				ContentURL:        contentUrl,
+				ContentType:       contentType,
+				Size:              size,
+			})
+		}
+	}
+	return attachments, nil
+
 }

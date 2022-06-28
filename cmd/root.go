@@ -29,6 +29,8 @@ var cfgFile string
 
 var C config.Config
 var Verbose bool
+var DownloadBufferSize int
+var DownloadThreads int
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -91,7 +93,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&C.DownloadDir, "download-dir", DefaultDownloadDir(), "base directory to put downloads")
 	rootCmd.PersistentFlags().StringVar(&CpuProfile, "cpu-profile", "", "where to generate a cpu profile for diagnosing performance issues")
 	rootCmd.PersistentFlags().StringVar(&MemProfile, "mem-profile", "", "where to generate a mem profile for diagnosing performance issues")
-
+	rootCmd.PersistentFlags().IntVarP(&DownloadBufferSize, "download-buffer-size-kb", "b", 4096, "buffer size in kb to use during downloads")
+	rootCmd.PersistentFlags().IntVarP(&DownloadThreads, "download-threads", "t", 8, "number of threads to use when downloading")
 	initConfig()
 }
 
