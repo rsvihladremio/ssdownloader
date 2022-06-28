@@ -131,7 +131,6 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 				if err != nil {
 					failedFiles = append(failedFiles, newFileName)
 					log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
-
 					continue
 				}
 				if verbose {

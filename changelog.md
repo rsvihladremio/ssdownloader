@@ -2,6 +2,7 @@ v0.3.0
 ------
 * now downloads attachments by default
 * can skip attachmments with --sendsafely-only flag
+* lots more testing of more parts of the code base, this is now beta
 
 v0.2.5
 ------
