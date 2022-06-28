@@ -17,7 +17,6 @@ package sendsafely
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -279,7 +278,6 @@ func (s *SendSafelyApiParser) ParseDownloadUrls(downloadJson string) ([]SendSafe
 	}
 	responseStatus := v.GetStringBytes("response")
 	if string(responseStatus) != "SUCCESS" {
-		log.Println(downloadJson)
 		message := v.Get("message")
 		if !message.Exists() {
 			return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected response from json with response status '%v', full json was '%v'", string(responseStatus), downloadJson)
