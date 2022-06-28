@@ -24,7 +24,32 @@ import (
 	"path/filepath"
 )
 
-func DownloadFile(fileName, url string) error {
+type GenericDownloader struct {
+	bufferSizeKB int
+}
+
+type IllegalBufferSize struct {
+	BufferSizeKB int
+}
+
+func (e IllegalBufferSize) Error() string {
+	return fmt.Sprintf("buffer size kb was %v and cannot be smaller than 1 please initialize the downloader with the NewGenericDownloader() function to guard against this happending", e.BufferSizeKB)
+}
+
+func NewGenericDownloader(bufferSizeKB int) *GenericDownloader {
+	if bufferSizeKB < 1 {
+		log.Println("buffer size cannot be smaller than 1 setting to default of 4096")
+		bufferSizeKB = 4096
+	}
+
+	return &GenericDownloader{bufferSizeKB: bufferSizeKB}
+}
+
+func (d *GenericDownloader) DownloadFile(fileName, url string) error {
+	if d.bufferSizeKB < 1 {
+		return IllegalBufferSize{BufferSizeKB: d.bufferSizeKB}
+	}
+
 	// making sure there are no goofy file names that overwrite critical files
 	cleanedFileName := filepath.Clean(fileName)
 	f, err := os.Create(cleanedFileName)
@@ -40,7 +65,7 @@ func DownloadFile(fileName, url string) error {
 	// is technically a security violation according to https://securego.io/docs/rules/g107.html
 	// but in reality based on the application is unavoidable and a risk of using SendSafely
 	// ignoring the rule in the ./script/audit file. Used suggestion from
-	// https://stackoverflow.com/questions/70281883/golang-untaint-url-variable-to-fix-gosec-warning-g107
+	// https://stackoverflow.com/questions/70281883/golang-untaint-url-†variable-to-fix-gosec-warning-g107
 	resp, err := http.Get(url)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve url '%v' due to error '%v'", url, err)
@@ -51,10 +76,8 @@ func DownloadFile(fileName, url string) error {
 			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
 		}
 	}()
-	//TODO make optional with verbose flag
-	//log.Printf("file %v complete with %v bytes written", fileName, bytes_written)
-	//TODO make buffer size adjustable
-	buf := make([]byte, 4096*1024)
+
+	buf := make([]byte, d.bufferSizeKB*1024)
 	_, err = io.CopyBuffer(f, resp.Body, buf)
 	if err != nil {
 		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)

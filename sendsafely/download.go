@@ -47,7 +47,7 @@ func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	return fi.Size() == fileSize
 }
 
-func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
+func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
 
 	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret, verbose)
 	p, err := client.RetrievePackgeById(packageId)
@@ -79,9 +79,6 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		}
 	}
 
-	//naively make a lot of requests and use primitives to wait until it's all done
-	var apiCalls sync.WaitGroup
-
 	for _, f := range p.Files {
 
 		fileName := f.FileName
@@ -98,87 +95,76 @@ func DownloadFilesFromPackage(packageId, keyCode string, c config.Config, subDir
 		}
 		log.Printf("downloading %v", fullPath)
 
-		apiCalls.Add(1)
-		go func() {
-			defer apiCalls.Done()
-			var fileNames []string
-			var errMutex sync.Mutex
-			var failedFiles []string
-			segmentRequestInformation := calculateExecutionCalls(parts)
-			for _, segment := range segmentRequestInformation {
-				start := segment.StartSegment
-				end := segment.EndSegment
+		var fileNames []string
+		var errMutex sync.Mutex
+		var failedFiles []string
+		segmentRequestInformation := calculateExecutionCalls(parts)
+		for _, segment := range segmentRequestInformation {
+			start := segment.StartSegment
+			end := segment.EndSegment
 
-				urls, err := client.GetDownloadUrlsForFile(
-					p,
-					fileId,
-					keyCode,
-					start,
-					end,
-				)
-				if err != nil {
-					log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
-					return
-				}
-				var wgDownloadUrls sync.WaitGroup
-				var m sync.Mutex
-				for i := range urls {
-					index := i
-
-					//spawning yet another go routine so adding this to the wait group
-					wgDownloadUrls.Add(1)
-					go func() {
-						defer wgDownloadUrls.Done()
-						url := urls[index]
-						downloadUrl := url.Url
-						filePart := url.Part
-						// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
-						tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
-						downloadLoc := filepath.Join(downloadDir, tmpName)
-						err = downloader.DownloadFile(downloadLoc, downloadUrl)
-						if err != nil {
-							log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
-							return
-						}
-						newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
-						m.Lock()
-						fileNames = append(fileNames, newFileName)
-						m.Unlock()
-						if err != nil {
-							errMutex.Lock()
-							failedFiles = append(failedFiles, newFileName)
-							errMutex.Unlock()
-							log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
-
-							return
-						}
-						if verbose {
-							log.Printf("file '%v' is decrypted", newFileName)
-						}
-					}()
-				}
-				wgDownloadUrls.Wait()
-				if len(failedFiles) > 0 {
-					log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
-					return
-				}
-			}
-			newFile, err := CombineFiles(fileNames, verbose)
+			urls, err := client.GetDownloadUrlsForFile(
+				p,
+				fileId,
+				keyCode,
+				start,
+				end,
+			)
 			if err != nil {
-				log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
-			} else {
-				log.Printf("file '%v is complete", newFile)
+				log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
+				continue //in threaded version is return
 			}
-			if !FileSizeMatches(fullPath, fileSize, verbose) {
-				log.Printf("ERROR: file %v failed verification, removing", fullPath)
-				if err := os.Remove(newFile); err != nil {
-					log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
+			//var m sync.Mutex
+			for i := range urls {
+				index := i
+
+				//spawning yet another go routine so adding this to the wait group
+				url := urls[index]
+				downloadUrl := url.Url
+				filePart := url.Part
+				// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
+				tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
+				downloadLoc := filepath.Join(downloadDir, tmpName)
+				err = d.DownloadFile(downloadLoc, downloadUrl)
+				if err != nil {
+					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
+					continue //return
+				}
+				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
+				//m.Lock()
+				fileNames = append(fileNames, newFileName)
+				//m.Unlock()
+				if err != nil {
+					errMutex.Lock()
+					failedFiles = append(failedFiles, newFileName)
+					errMutex.Unlock()
+					log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
+
+					continue //return
+				}
+				if verbose {
+					log.Printf("file '%v' is decrypted", newFileName)
 				}
 			}
-		}()
+			if len(failedFiles) > 0 {
+				log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
+				continue // in threaded version is return
+			}
+		}
+		newFile, err := CombineFiles(fileNames, verbose)
+		if err != nil {
+			log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
+		} else {
+			log.Printf("file '%v is complete", newFile)
+		}
+		if !FileSizeMatches(fullPath, fileSize, verbose) {
+			log.Printf("ERROR: file %v failed verification, removing", fullPath)
+			if err := os.Remove(newFile); err != nil {
+				log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
+			}
+		}
 
 	}
-	apiCalls.Wait()
 	return nil
 }
 

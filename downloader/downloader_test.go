@@ -16,6 +16,7 @@
 package downloader
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -38,7 +39,8 @@ func TestDownloadFile(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", url, responder)
 	fileName := fmt.Sprintf("%v/testFile.json", t.TempDir())
-	err := DownloadFile(fileName, url)
+	d := NewGenericDownloader(4096)
+	err := d.DownloadFile(fileName, url)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -49,5 +51,28 @@ func TestDownloadFile(t *testing.T) {
 
 	if string(b) != resp {
 		t.Errorf("expected %v but was %v", resp, string(b))
+	}
+}
+
+func TestInvalidBufferSizeResultsInDefault(t *testing.T) {
+	d := NewGenericDownloader(-1)
+	if d.bufferSizeKB != 4096 {
+		t.Errorf("expected 4096 but was %v", d.bufferSizeKB)
+	}
+
+	d = NewGenericDownloader(0)
+	if d.bufferSizeKB != 4096 {
+		t.Errorf("expected 4096 but was %v", d.bufferSizeKB)
+	}
+}
+
+func TestUsingDefaultBufferSizeResultsInError(t *testing.T) {
+	d := GenericDownloader{}
+	err := d.DownloadFile("", "")
+	if err == nil {
+		t.Error("expected an error but there was none")
+	}
+	if !errors.Is(err, IllegalBufferSize{}) {
+		t.Errorf("expected error of %v but was %v", IllegalBufferSize{}, err)
 	}
 }

@@ -22,8 +22,10 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"strings"
+	"sync"
 	"syscall"
 
+	"github.com/panjf2000/ants/v2"
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/link"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
@@ -50,6 +52,7 @@ var ticketCmd = &cobra.Command{
 		`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+
 		if CpuProfile != "" {
 			f, err := os.Create(CpuProfile)
 			if err != nil {
@@ -75,6 +78,7 @@ var ticketCmd = &cobra.Command{
 			}
 
 		}
+		d := downloader.NewGenericDownloader(DownloadBufferSize)
 		password := ""
 		if useZendeskPassword {
 			fmt.Println("enter password:")
@@ -97,7 +101,13 @@ var ticketCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("unable parse comments with error '%v'", err)
 		}
+		p, err := ants.NewPool(DownloadThreads)
+		if err != nil {
+			log.Fatalf("cannot initialize thread pool due to error %v", err)
+		}
 
+		defer p.Release()
+		var wg sync.WaitGroup
 		for _, url := range urls {
 			if strings.HasPrefix(url, "https://sendsafely") {
 				linkParts, err := link.ParseLink(url)
@@ -105,9 +115,16 @@ var ticketCmd = &cobra.Command{
 					log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 				}
 				packageId := linkParts.PackageCode
-				err = sendsafely.DownloadFilesFromPackage(packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId), Verbose)
+				wg.Add(1)
+				err = p.Submit(func() {
+					err := sendsafely.DownloadFilesFromPackage(d, packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId), Verbose)
+					if err != nil {
+						log.Printf("error downloading %v", err)
+					}
+					wg.Done()
+				})
 				if err != nil {
-					log.Fatal(err)
+					log.Fatalf("cannot itialize sendsafely download due to error %v", err)
 				}
 			}
 		}
@@ -117,15 +134,22 @@ var ticketCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			for _, a := range attachments {
-				if err := DownloadNonSendSafelyLink(a, ticketId); err != nil {
-					log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
+				err = p.Submit(func() {
+					if err := DownloadNonSendSafelyLink(d, a, ticketId); err != nil {
+						log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
+					}
+					wg.Done()
+				})
+				if err != nil {
+					log.Fatalf("cannot itialize sendsafely download due to error %v", err)
 				}
 			}
 		}
+		wg.Wait()
 	},
 }
 
-func DownloadNonSendSafelyLink(a zendesk.Attachment, ticketId string) error {
+func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketId string) error {
 	if a.Deleted {
 		return fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
 	}
@@ -148,7 +172,7 @@ func DownloadNonSendSafelyLink(a zendesk.Attachment, ticketId string) error {
 		}
 	}
 
-	if err := downloader.DownloadFile(newFileName, a.ContentURL); err != nil {
+	if err := d.DownloadFile(newFileName, a.ContentURL); err != nil {
 		return fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
 	}
 	if !sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
@@ -167,5 +191,5 @@ func DownloadNonSendSafelyLink(a zendesk.Attachment, ticketId string) error {
 func init() {
 	rootCmd.AddCommand(ticketCmd)
 	ticketCmd.Flags().BoolVarP(&useZendeskPassword, "zendesk-password", "p", false, "Use a password instead of an api key to authenticate against zendesk")
-	ticketCmd.Flags().BoolVar(&onlySendSafelyLinks, "only-sendsafely-links", false, "when true only sendsafely links will be downloaded")
+	ticketCmd.Flags().BoolVar(&onlySendSafelyLinks, "sendsafely-only", false, "when true only sendsafely links will be downloaded")
 }
