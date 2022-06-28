@@ -1,6 +1,6 @@
 ![build](https://github.com/rsvihladremio/ssdownloader/actions/workflows/checkin.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/rsvihladremio/ssdownloader)](https://goreportcard.com/report/github.com/rsvihladremio/ssdownloader)
-[![Coverage Status](https://coveralls.io/repos/github/rsvihladremio/ssdownloader/badge.svg?branch=HEAD)](https://coveralls.io/github/rsvihladremio/ssdownloader?branch=HEAD)
+[![Coverage Status](https://coveralls.io/repos/github/rsvihladremio/ssdownloader/badge.svg?branch=main)](https://coveralls.io/github/rsvihladremio/ssdownloader?branch=main)
 
 # ssdownloader
 
