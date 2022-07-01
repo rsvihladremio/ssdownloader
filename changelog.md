@@ -1,3 +1,7 @@
+v0.3.1
+------
+* date formatting bug in sendsafely api left requests expiring
+
 v0.3.0
 ------
 * now downloads attachments by default
