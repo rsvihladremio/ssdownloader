@@ -12,7 +12,23 @@ SendSafely downloader that integrates with Zendesk
 
 ## Quickstart
 
-On Linux, Mac or WSL do the following:
+On mac I suggest homebrew:
+```sh
+$ brew tap rsvihladremio/ssdownloader
+$ brew install ssdownloader
+$ ssdownloader init
+$ ssdownloader ticket 9999 
+$ ssdownloader main-a3caa66-darwin-amd64
+
+2022/06/23 10:35:35 making dir /Users/foo/.sendsafely
+2022/06/23 10:35:35 making dir /Users/foo/.sendsafely/tickets/9999
+2022/06/23 10:35:35 downloading fqfqsdfqds-fdfsd-fdqfd-fqdfq-fdqfdsffqdfq - works.zip
+2022/06/23 10:35:35 downloading cbabd5ba-fdqf-fdqdf-qfd-fqdfsdfqs - problem.zip
+2022/06/23 10:35:35 downloading server.log
+```
+
+
+On Linux or WSL do the following:
 
 ```sh
 $ curl -sSfL https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install | sh 
