@@ -59,7 +59,7 @@ func NewSendSafelyClient(ssApiKey, ssApiSecret string, verbose bool) *SendSafely
 func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPackage, error) {
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
-	ts := now.Format("2006-02-03T15:04:05-0700")
+	ts := now.Format("2006-01-02T15:04:05-0700")
 	// adding package and packageId to the base send safely URL. This is a quirk documented under URL_PATH in the sendsafely docs above
 	urlPath := strings.Join([]string{"/api", "v2.0", "package", packageId}, "/")
 	sig, err := s.generateRequestSignature(ts, urlPath, "")
@@ -74,6 +74,10 @@ func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPacka
 	//this is actually usable by the rest api unlike the urlPath
 	requestPath := strings.Join([]string{SS_URL, "package", packageId}, "/")
 	// add the required sendsafely headers to the request is accepted and then submit the request
+
+	if s.verbose {
+		log.Printf("retrieving package by Id - apikey: %v, request-ts-header: %v, request-sig-header: %v, urlPath: %v, requestPath: %v", s.ssApiKey, ts, sig, urlPath, requestPath)
+	}
 	r, err := s.client.R().
 		SetHeader("ss-api-key", s.ssApiKey).
 		SetHeader("ss-request-timestamp", ts).
@@ -166,7 +170,7 @@ func (s *SendSafelyClient) GetDownloadUrlsForFile(p SendSafelyPackage, fileId, k
 	}
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
-	ts := now.Format("2006-02-03T15:04:05-0700")
+	ts := now.Format("2006-01-02T15:04:05-0700")
 	// adding package and packageId to the base send safely URL. This is a quirk documented under URL_PATH in the sendsafely docs above
 	urlPath := strings.Join([]string{"/api", "v2.0", "package", p.PackageId, "file", fileId, "download-urls/"}, "/")
 	//generate the check sum
@@ -180,6 +184,7 @@ func (s *SendSafelyClient) GetDownloadUrlsForFile(p SendSafelyPackage, fileId, k
 	//this is actually usable by the rest api unlike the urlPath
 	requestPath := strings.Join([]string{SS_URL, "package", p.PackageId, "file", fileId, "download-urls/"}, "/")
 	// add the required sendsafely headers to the request is accepted and then submit the request
+
 	r, err := s.client.R().
 		SetHeader("Content-Type", "application/json").
 		SetHeader("ss-api-key", s.ssApiKey).
