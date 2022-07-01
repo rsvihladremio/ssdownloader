@@ -48,7 +48,6 @@ On Windows do the following:
 ```sh
 $ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
 $ irm https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install.ps1  | iex 
-$ cd 'C:\Program Files\ssdownloader'
 $ .\ssdownloader.exe init
 $ .\ssdownloader.exe ticket 9999 
 $ .\ssdownloader.exe main-a3caa66-darwin-amd64
