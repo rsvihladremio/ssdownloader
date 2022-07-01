@@ -18,7 +18,7 @@ unzip .\"$latestTag.zip"
 #for some reason tag loses v portion
 $version=$latestTag.Trim("v"," ")
 Set-Location ssdownloader-$version
-go build -o ..\ssdownloader
+go build -o ..\ssdownloader.exe
 
 Set-Location ..
 Remove-Item .\ssdownloader-$version -Force -Recurse 

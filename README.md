@@ -49,9 +49,9 @@ On Windows do the following:
 $ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
 $ irm https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install.ps1  | iex 
 $ cd 'C:\Program Files\ssdownloader'
-$ .\ssdownloader init
-$ .\ssdownloader ticket 9999 
-$ .\ssdownloader main-a3caa66-darwin-amd64
+$ .\ssdownloader.exe init
+$ .\ssdownloader.exe ticket 9999 
+$ .\ssdownloader.exe main-a3caa66-darwin-amd64
 
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely/tickets/9999
