@@ -1,11 +1,7 @@
-#!/bin/sh
-
 # script/lint: Run gofmt and golangci-lint run
 
-set -e
+Set-Location "$PSScriptRoot\.."
 
-cd "$(dirname "$0")/.."
-
-gofmt -l -s -d .
+go fmt ./...
 
 golangci-lint run -E exportloopref -D structcheck
