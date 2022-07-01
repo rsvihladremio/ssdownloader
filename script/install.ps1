@@ -23,3 +23,4 @@ go build -o ..\ssdownloader.exe
 Set-Location ..
 Remove-Item .\ssdownloader-$version -Force -Recurse 
 Remove-Item .\bootstrap.ps1
+Remove-Item .\$fileName
