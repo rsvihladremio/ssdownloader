@@ -8,7 +8,8 @@ $latestTag="main"
 Invoke-WebRequest -outfile bootstrap.ps1 "https://raw.githubusercontent.com/rsvihladremio/ssdownloader/$latestTag/script/bootstrap.ps1"
 .\bootstrap.ps1
 
-$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/tags/$latestTag.zip"
+#$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/tags/$latestTag.zip"
+$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/heads/main.zip"
 $fileName="$latestTag.zip"
 Invoke-WebRequest  -Uri $url -OutFile $fileName -ContentType 'application/octet-stream'
 
