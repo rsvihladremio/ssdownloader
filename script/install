@@ -13,3 +13,4 @@ sudo cp ./ssdownloader /usr/local/bin
 cd ..
 rm -fr ssdownloader-main 
 rm boostrap
+rm main.zip
