@@ -18,9 +18,8 @@ unzip .\"$latestTag.zip"
 #for some reason tag loses v portion
 $version=$latestTag.Trim("v"," ")
 Set-Location ssdownloader-$version
-.\script\build.ps1
+go build -o ..\ssdownloader
 
-Move-Item .\bin\ssdownloader ..
 Set-Location ..
 Remove-Item .\ssdownloader-$version -Force -Recurse 
 Remove-Item .\bootstrap.ps1

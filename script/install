@@ -8,8 +8,8 @@ sh ./bootstrap
 curl -L -o main.zip https://github.com/rsvihladremio/ssdownloader/archive/refs/heads/main.zip
 unzip main.zip
 cd ssdownloader-main 
-./script/build
-sudo cp ./bin/ssdownloader /usr/local/bin
+go build -o ssdownloader 
+sudo cp ./ssdownloader /usr/local/bin
 cd ..
 rm -fr ssdownloader-main 
 rm boostrap
