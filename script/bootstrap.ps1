@@ -63,7 +63,17 @@ Get-Date
 if (Get-Command 'zip' -errorAction SilentlyContinue) {
     "zip installed"
 } else {
-    Write-Output "gh not found installing"
+    Write-Output "zip not found installing"
     Get-Date
     scoop install zip
+}
+
+Write-Output "Checking if unzip is installed"
+Get-Date
+if (Get-Command 'unzip' -errorAction SilentlyContinue) {
+    "unzip installed"
+} else {
+    Write-Output "unzip not found installing"
+    Get-Date
+    scoop install unzip
 }
