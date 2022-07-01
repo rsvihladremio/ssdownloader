@@ -1,5 +1,7 @@
 # script/build: build binary 
 
+Set-Location "$PSScriptRoot\.."
+
 # this is also set in script/release and is a copy paste
 $GIT_SHA=@(git rev-parse --short HEAD)
 $VERSION=@(git rev-parse --abbrev-ref HEAD)

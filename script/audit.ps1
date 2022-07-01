@@ -1,6 +1,8 @@
 # script/audit: runs gosec against the mod file to find security issues
 #                   
 
+Set-Location "$PSScriptRoot\.."
+
 # Run everything except for rule G107
 # this is due to G107 requiring non dynamic URLs for get
 # since we are implicitely trusting sendsafely here we have
