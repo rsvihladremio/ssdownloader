@@ -20,8 +20,7 @@ $version=$latestTag.Trim("v"," ")
 Set-Location ssdownloader-$version
 .\script\build.ps1
 
-mkdir -p 'C:\Program Files\ssdownloader' 
-Move-Item .\bin\ssdownloader 'C:\Program Files\ssdownloader'
+Move-Item .\bin\ssdownloader ..
 Set-Location ..
 Remove-Item .\ssdownloader-$version -Force -Recurse 
 Remove-Item .\bootstrap.ps1
