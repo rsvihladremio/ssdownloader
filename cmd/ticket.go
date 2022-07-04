@@ -134,6 +134,7 @@ var ticketCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 			for _, a := range attachments {
+				wg.Add(1)
 				err = p.Submit(func() {
 					if err := DownloadNonSendSafelyLink(d, a, ticketId); err != nil {
 						log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
