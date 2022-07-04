@@ -1,3 +1,7 @@
+v0.3.2
+------
+* forgot to add wait group counter for attachment download leading to race condition
+
 v0.3.1
 ------
 * date formatting bug in sendsafely api left requests expiring
