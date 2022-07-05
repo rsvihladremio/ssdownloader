@@ -4,4 +4,4 @@ Set-Location "$PSScriptRoot\.."
 
 go fmt ./...
 
-golangci-lint run -E exportloopref -D structcheck
+golangci-lint run -E exportloopref, revive -D structcheck

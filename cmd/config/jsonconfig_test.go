@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//config package handles the reading and writing of the app configuration file
 package config
 
 import "testing"
@@ -43,12 +45,12 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	expectedSSKey := "ssapikey"
-	if c.SsApiKey != expectedSSKey {
-		t.Errorf("expected %v but was %v", expectedSSKey, c.SsApiKey)
+	if c.SsAPIKey != expectedSSKey {
+		t.Errorf("expected %v but was %v", expectedSSKey, c.SsAPIKey)
 	}
 
 	expectedSSSecret := "ssapisecret"
-	if c.SsApiSecret != expectedSSSecret {
-		t.Errorf("expected %v but was %v", expectedSSSecret, c.SsApiSecret)
+	if c.SsAPISecret != expectedSSSecret {
+		t.Errorf("expected %v but was %v", expectedSSSecret, c.SsAPISecret)
 	}
 }

@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -31,68 +33,68 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-const SS_URL = "https://app.sendsafely.com/api/v2.0"
+const URL = "https://app.sendsafely.com/api/v2.0"
 
-// SendSafelyClient uses the SendSafely REST Api to
+// Client uses the SendSafely REST Api to
 // enable automation of SendSafely in Go
-type SendSafelyClient struct {
-	parser      *SendSafelyApiParser
+type Client struct {
+	parser      *APIParser
 	client      *resty.Client
-	ssApiKey    string
-	ssApiSecret string
+	ssAPIKey    string
+	ssAPISecret string
 	verbose     bool
 }
 
-// NewSendSafelyClient is the preferred way to initialize SendSafelyClient
-func NewSendSafelyClient(ssApiKey, ssApiSecret string, verbose bool) *SendSafelyClient {
+// NewClient is the preferred way to initialize SendSafelyClient
+func NewClient(ssAPIKey, ssAPISecret string, verbose bool) *Client {
 	client := resty.New()
 
-	return &SendSafelyClient{
-		ssApiKey:    ssApiKey,
-		ssApiSecret: ssApiSecret,
+	return &Client{
+		ssAPIKey:    ssAPIKey,
+		ssAPISecret: ssAPISecret,
 		client:      client,
-		parser:      &SendSafelyApiParser{},
+		parser:      &APIParser{},
 		verbose:     verbose,
 	}
 }
 
-func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPackage, error) {
+func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
 	ts := now.Format("2006-01-02T15:04:05-0700")
 	// adding package and packageId to the base send safely URL. This is a quirk documented under URL_PATH in the sendsafely docs above
-	urlPath := strings.Join([]string{"/api", "v2.0", "package", packageId}, "/")
+	urlPath := strings.Join([]string{"/api", "v2.0", "package", packageID}, "/")
 	sig, err := s.generateRequestSignature(ts, urlPath, "")
 	if err != nil {
-		return SendSafelyPackage{}, fmt.Errorf("unexpected error generating request signature '%v'", err)
+		return Package{}, fmt.Errorf("unexpected error generating request signature '%v'", err)
 	}
 	// validating client is set in the first place
 	if s.client == nil {
-		return SendSafelyPackage{}, errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")
+		return Package{}, errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")
 	}
 
 	//this is actually usable by the rest api unlike the urlPath
-	requestPath := strings.Join([]string{SS_URL, "package", packageId}, "/")
+	requestPath := strings.Join([]string{URL, "package", packageID}, "/")
 	// add the required sendsafely headers to the request is accepted and then submit the request
 
 	if s.verbose {
-		log.Printf("retrieving package by Id - apikey: %v, request-ts-header: %v, request-sig-header: %v, urlPath: %v, requestPath: %v", s.ssApiKey, ts, sig, urlPath, requestPath)
+		log.Printf("retrieving package by Id - apikey: %v, request-ts-header: %v, request-sig-header: %v, urlPath: %v, requestPath: %v", s.ssAPIKey, ts, sig, urlPath, requestPath)
 	}
 	r, err := s.client.R().
-		SetHeader("ss-api-key", s.ssApiKey).
+		SetHeader("ss-api-key", s.ssAPIKey).
 		SetHeader("ss-request-timestamp", ts).
 		SetHeader("ss-request-signature", sig).
 		Get(requestPath)
 	if err != nil {
-		return SendSafelyPackage{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
+		return Package{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
 	}
 	rawResponseBody := r.Body()
 	if s.verbose {
-		var prettyJsonBuffer bytes.Buffer
-		if err := json.Indent(&prettyJsonBuffer, rawResponseBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for sendsafely package id %v string '%v'", packageId, string(rawResponseBody))
+		var prettyJSONBuffer bytes.Buffer
+		if err := json.Indent(&prettyJSONBuffer, rawResponseBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for sendsafely package id %v string '%v'", packageID, string(rawResponseBody))
 		} else {
-			log.Printf("DEBUG: Package %v Reponse '%v'", packageId, prettyJsonBuffer.String())
+			log.Printf("DEBUG: Package %v Reponse '%v'", packageID, prettyJSONBuffer.String())
 		}
 	}
 	return s.parser.ParsePackage(string(rawResponseBody))
@@ -102,17 +104,17 @@ func (s *SendSafelyClient) RetrievePackgeById(packageId string) (SendSafelyPacka
 // which is a combination of HmacSHA256(API_SECRET, API_KEY + URL_PATH + TIMESTAMP + REQUEST_BODY)
 // TIMESTAMP meaning ss-request-timestamp header. The overal function is documented at the
 // following link https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
-func (s *SendSafelyClient) generateRequestSignature(ts string, urlPath string, requestBody string) (string, error) {
+func (s *Client) generateRequestSignature(ts string, urlPath string, requestBody string) (string, error) {
 
 	// dump data into the hash, a combination of api_key + urlPath + timestamp + request-body
-	requestData := strings.Join([]string{s.ssApiKey, urlPath, ts, requestBody}, "")
+	requestData := strings.Join([]string{s.ssAPIKey, urlPath, ts, requestBody}, "")
 	return s.sign(requestData)
 }
 
 // GenerateRequestSignature is a utility method to generate the checksum for download requests
 // which is a combination of HmacSHA256(keycode,packageCode))
 // following link https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
-func (s *SendSafelyClient) generateChecksum(keyCode, packageCode string) string {
+func (s *Client) generateChecksum(keyCode, packageCode string) string {
 
 	// use pbkdf2 to encrypt the keycode
 	// from sendsafely docs https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
@@ -134,9 +136,9 @@ func (s *SendSafelyClient) generateChecksum(keyCode, packageCode string) string 
 	return hex.EncodeToString(dk)
 }
 
-func (s *SendSafelyClient) sign(data string) (string, error) {
+func (s *Client) sign(data string) (string, error) {
 	// using the api secret to setup the hmacsha256
-	h := hmac.New(sha256.New, []byte(s.ssApiSecret))
+	h := hmac.New(sha256.New, []byte(s.ssAPISecret))
 
 	_, err := h.Write([]byte(data))
 	if err != nil {
@@ -163,45 +165,45 @@ func (s *SendSafelyClient) sign(data string) (string, error) {
 //   "startSegment": 1,
 //   "endSegment": 25
 // }
-func (s *SendSafelyClient) GetDownloadUrlsForFile(p SendSafelyPackage, fileId, keyCode string, start, end int) ([]SendSafelyDownloadUrl, error) {
+func (s *Client) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
 	// validating client is set in the first place
 	if s.client == nil {
-		return []SendSafelyDownloadUrl{}, errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")
+		return []DownloadURL{}, errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")
 	}
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
 	ts := now.Format("2006-01-02T15:04:05-0700")
 	// adding package and packageId to the base send safely URL. This is a quirk documented under URL_PATH in the sendsafely docs above
-	urlPath := strings.Join([]string{"/api", "v2.0", "package", p.PackageId, "file", fileId, "download-urls/"}, "/")
+	urlPath := strings.Join([]string{"/api", "v2.0", "package", p.PackageID, "file", fileID, "download-urls/"}, "/")
 	//generate the check sum
 	checkSum := s.generateChecksum(keyCode, p.PackageCode)
 	body := fmt.Sprintf("{\"checksum\":\"%v\",\"startSegment\":%v,\"endSegment\":%v}", checkSum, start, end)
 
 	sig, err := s.generateRequestSignature(ts, urlPath, body)
 	if err != nil {
-		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpected error generating request signature '%v'", err)
+		return []DownloadURL{}, fmt.Errorf("unexpected error generating request signature '%v'", err)
 	}
 	//this is actually usable by the rest api unlike the urlPath
-	requestPath := strings.Join([]string{SS_URL, "package", p.PackageId, "file", fileId, "download-urls/"}, "/")
+	requestPath := strings.Join([]string{URL, "package", p.PackageID, "file", fileID, "download-urls/"}, "/")
 	// add the required sendsafely headers to the request is accepted and then submit the request
 
 	r, err := s.client.R().
 		SetHeader("Content-Type", "application/json").
-		SetHeader("ss-api-key", s.ssApiKey).
+		SetHeader("ss-api-key", s.ssAPIKey).
 		SetHeader("ss-request-timestamp", ts).
 		SetHeader("ss-request-signature", sig).
 		SetBody(body).
 		Post(requestPath)
 	if err != nil {
-		return []SendSafelyDownloadUrl{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
+		return []DownloadURL{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
 	}
 	rawResponseBody := r.Body()
 	if s.verbose {
-		var prettyJsonBuffer bytes.Buffer
-		if err := json.Indent(&prettyJsonBuffer, rawResponseBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for sendsafely urls for package id %v string '%v'", p.PackageId, string(rawResponseBody))
+		var prettyJSONBuffer bytes.Buffer
+		if err := json.Indent(&prettyJSONBuffer, rawResponseBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for sendsafely urls for package id %v string '%v'", p.PackageID, string(rawResponseBody))
 		} else {
-			log.Printf("DEBUG: Package %v Download Urls '%v'", p.PackageId, prettyJsonBuffer.String())
+			log.Printf("DEBUG: Package %v Download Urls '%v'", p.PackageID, prettyJSONBuffer.String())
 		}
 	}
 	return s.parser.ParseDownloadUrls(string(rawResponseBody))

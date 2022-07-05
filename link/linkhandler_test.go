@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//link package handles parsing of sendsafely links so that we can retrieve the identifying information in the query parameters
 package link
 
 import (
@@ -49,7 +51,7 @@ func TestKeyCodeMissing(t *testing.T) {
 		t.Fatalf("exected error '%v'", err)
 	}
 	if !errors.Is(err, KeyCodeIsMissingErr{
-		InputUrl: url,
+		InputURL: url,
 		KeyCode:  "",
 	}) {
 		t.Errorf("expected KeyCodeIsMissingErr but got %v", err)
@@ -68,7 +70,7 @@ func TestPackageCodeMissing(t *testing.T) {
 		t.Fatalf("exected error '%v'", err)
 	}
 	if !errors.Is(err, PackageCodeIsMissingErr{
-		InputUrl: url,
+		InputURL: url,
 	}) {
 		t.Errorf("expected PackageCodeIsMissingErr but got %v", err)
 	} else {
@@ -86,7 +88,7 @@ func TestThreadMissing(t *testing.T) {
 		t.Fatalf("exected error '%v'", err)
 	}
 	if !errors.Is(err, ThreadIsMissingErr{
-		InputUrl: url,
+		InputURL: url,
 	}) {
 		t.Errorf("expected ThreadIsMissingErr but got %v", err)
 	} else {
@@ -103,7 +105,7 @@ func TestInvalidUrl(t *testing.T) {
 	if err == nil {
 		t.Fatalf("exected error '%v'", err)
 	}
-	expectedError := UrlParseErr{Url: url, BaseErr: errors.New("parse \"*$ù%\": invalid URL escape \"%\"")}
+	expectedError := URLParseErr{URL: url, BaseErr: errors.New("parse \"*$ù%\": invalid URL escape \"%\"")}
 	if err.Error() != expectedError.Error() {
 		t.Errorf("expected '%v' but got '%v'", expectedError, err)
 	}

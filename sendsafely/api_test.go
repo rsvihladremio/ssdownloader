@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -26,7 +28,7 @@ import (
 // This is the default happy path test, no errors
 func TestRetrievePackgeById(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewSendSafelyClient("myApiKey", "mySecret", false)
+	ssClient := NewClient("myApiKey", "mySecret", false)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -34,7 +36,7 @@ func TestRetrievePackgeById(t *testing.T) {
 	httpmock.ActivateNonDefault(ssClient.client.GetClient())
 	// make sure to reset the mock after the test
 	defer httpmock.DeactivateAndReset()
-	packageId := "ABDC-DDFAF"
+	packageID := "ABDC-DDFAF"
 	// using the sample json from the sendafely website, with the files field correctly
 	// filled out (the sendsafely site had the "files" field incorrectly documented)
 	resp := `{
@@ -99,40 +101,40 @@ func TestRetrievePackgeById(t *testing.T) {
 	// setup a responder to the expected status code of 200 and then returning the json data setup abovee
 	responder := httpmock.NewStringResponder(200, resp)
 
-	url := strings.Join([]string{SS_URL, "package", packageId}, "/")
+	url := strings.Join([]string{URL, "package", packageID}, "/")
 	// we are expecting a GET request with the exact url specified above, if that exact match happens
 	// the json body setup in the responder will return instead of hitting the remote sendsafely server
 	httpmock.RegisterResponder("GET", url, responder)
-	pkg, err := ssClient.RetrievePackgeById(packageId)
+	pkg, err := ssClient.RetrievePackgeByID(packageID)
 	if err != nil {
 		t.Fatalf("unexpected error retrieving id '%v'", err)
 	}
 	//choosing not to retest the entire json parsing for this as it is already covered in other tests in
 	// github.com/rsvihladremio/ssdownloader/sendsafely under the parsing_test.go file
-	if pkg.PackageId != packageId {
-		t.Errorf("expected packageId '%v' but was '%v'", packageId, pkg.PackageId)
+	if pkg.PackageID != packageID {
+		t.Errorf("expected packageId '%v' but was '%v'", packageID, pkg.PackageID)
 	}
 }
 
 // the bad auth case, this mimics the actual production api as of 2022-06-20
 func TestRetrievePackageHasBadAuth(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewSendSafelyClient("myApiKey", "mySecret", false)
+	ssClient := NewClient("myApiKey", "mySecret", false)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
 	// preventing remote calls from going to SendSafely
 	httpmock.ActivateNonDefault(ssClient.client.GetClient())
 	defer httpmock.DeactivateAndReset()
-	packageId := "ABDC-DDFAF"
+	packageID := "ABDC-DDFAF"
 	resp := `{"response":"AUTHENTICATION_FAILED","message":"Invalid API Key"}`
 
 	// Exact URL match
-	url := strings.Join([]string{SS_URL, "package", packageId}, "/")
+	url := strings.Join([]string{URL, "package", packageID}, "/")
 	responder := httpmock.NewStringResponder(200, resp) //yes they really log 200 when you get an error
 
 	httpmock.RegisterResponder("GET", url, responder)
-	_, err := ssClient.RetrievePackgeById(packageId)
+	_, err := ssClient.RetrievePackgeByID(packageID)
 	if err == nil {
 		t.Fatal("expected error retrieving id")
 	}
@@ -146,7 +148,7 @@ func TestRetrievePackageHasBadAuth(t *testing.T) {
 // the main purpose of this test is not to explain the function but to lock in time the behavior
 // so that if there is a breaking change we will catch it
 func TestGenerateSignature(t *testing.T) {
-	ssClient := NewSendSafelyClient("", "", false)
+	ssClient := NewClient("", "", false)
 	ts, err := time.Parse(time.RFC3339, "2022-05-31T18:11:21Z")
 	if err != nil {
 		t.Fatalf("bad test setup since we were not able to use our datetime due to error '%v'", err)
@@ -175,7 +177,7 @@ func TestGenerateSignature(t *testing.T) {
 // the main purpose of this test is not to explain the function but to lock in time the behavior
 // so that if there is a breaking change we will catch it
 func TestGenerateCheckSum(t *testing.T) {
-	ssClient := NewSendSafelyClient("", "", false)
+	ssClient := NewClient("", "", false)
 	checkSum := ssClient.generateChecksum("abc", "def")
 
 	// calculated this, not very meaningful to read, but this will lock the tested behavior and guard against

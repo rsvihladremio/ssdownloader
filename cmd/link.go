@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//cmd package contains all the command line flag configuration
 package cmd
 
 import (
@@ -37,10 +39,10 @@ var linkCmd = &cobra.Command{
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if CpuProfile != "" {
-			f, err := os.Create(CpuProfile)
+		if CPUProfile != "" {
+			f, err := os.Create(CPUProfile)
 			if err != nil {
-				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CpuProfile, err)
+				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CPUProfile, err)
 			}
 			if err := pprof.StartCPUProfile(f); err != nil {
 				log.Fatalf("unable to start cpu profiling due to error %v", err)
@@ -62,10 +64,10 @@ var linkCmd = &cobra.Command{
 			}
 
 		}
-		if C.SsApiKey == "" {
+		if C.SsAPIKey == "" {
 			log.Fatalf("ss-api-key is not set and this is required")
 		}
-		if C.SsApiSecret == "" {
+		if C.SsAPISecret == "" {
 			log.Fatalf("ss-api-secret is not set and this is required")
 		}
 		url := args[0]
@@ -73,9 +75,9 @@ var linkCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 		}
-		packageId := linkParts.PackageCode
+		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
-		err = sendsafely.DownloadFilesFromPackage(d, packageId, linkParts.KeyCode, C, "packages", Verbose)
+		err = sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
 			log.Fatal(err)
 		}

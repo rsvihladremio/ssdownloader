@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//zendesk package provides api access to the zendesk rest api
 package zendesk
 
 import (
@@ -24,6 +26,10 @@ import (
 
 	"github.com/go-resty/resty/v2"
 )
+
+func URL(subDomain, ticketID string) string {
+	return fmt.Sprintf("https://%v.zendesk.com/api/v2/tickets/%v/comments.json", subDomain, ticketID)
+}
 
 // GetTicketComments returns all comments as a concatenated string so we can search them
 // GET /api/v2/tickets/{ticket_id}/comments
@@ -68,8 +74,8 @@ import (
 // 	  }
 // 	]
 //   }
-func (z *ZenDeskAPI) GetTicketComentsJSON(ticketId string) (string, error) {
-	url := fmt.Sprintf("https://%v.zendesk.com/api/v2/tickets/%v/comments.json", z.subDomain, ticketId)
+func (z *Client) GetTicketComentsJSON(ticketID string) (string, error) {
+	url := URL(z.subDomain, ticketID)
 	auth := fmt.Sprintf("%v/token:%v", z.username, z.password)
 	base64Auth := base64.StdEncoding.EncodeToString([]byte(auth))
 	r, err := z.client.R().
@@ -81,17 +87,17 @@ func (z *ZenDeskAPI) GetTicketComentsJSON(ticketId string) (string, error) {
 	}
 	rawBody := r.Body()
 	if z.verbose {
-		var prettyJsonBuffer bytes.Buffer
-		if err := json.Indent(&prettyJsonBuffer, rawBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for ticket %v printing string '%v'", ticketId, string(rawBody))
+		var prettyJSONBuffer bytes.Buffer
+		if err := json.Indent(&prettyJSONBuffer, rawBody, "=", "\t"); err != nil {
+			log.Printf("WARN: Unable to log debugging json for ticket %v printing string '%v'", ticketID, string(rawBody))
 		} else {
-			log.Printf("DEBUG: Ticket %v Comments Contents '%v'", ticketId, prettyJsonBuffer.String())
+			log.Printf("DEBUG: Ticket %v Comments Contents '%v'", ticketID, prettyJSONBuffer.String())
 		}
 	}
 	return string(rawBody), nil
 }
 
-type ZenDeskAPI struct {
+type Client struct {
 	client    resty.Client
 	username  string
 	password  string
@@ -99,8 +105,8 @@ type ZenDeskAPI struct {
 	verbose   bool
 }
 
-func NewZenDeskAPI(username, password, subDomain string, verbose bool) *ZenDeskAPI {
-	return &ZenDeskAPI{
+func NewClient(username, password, subDomain string, verbose bool) *Client {
+	return &Client{
 		subDomain: subDomain,
 		username:  username,
 		password:  password,

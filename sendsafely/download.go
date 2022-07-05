@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -46,10 +48,10 @@ func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	return fi.Size() == fileSize
 }
 
-func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
+func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
 
-	client := NewSendSafelyClient(c.SsApiKey, c.SsApiSecret, verbose)
-	p, err := client.RetrievePackgeById(packageId)
+	client := NewClient(c.SsAPIKey, c.SsAPISecret, verbose)
+	p, err := client.RetrievePackgeByID(packageID)
 	if err != nil {
 		return err
 	}
@@ -64,9 +66,9 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 		}
 	}
 
-	shortPackageId := p.PackageId
+	shortPackageID := p.PackageID
 	//make config directory for this package code if it does not exist
-	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload, shortPackageId)
+	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload, shortPackageID)
 
 	_, err = os.Stat(downloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
@@ -83,7 +85,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 		fileName := f.FileName
 		parts := f.Parts
 		fileSize := f.FileSize
-		fileId := f.FileId
+		fileID := f.FileID
 		fullPath := filepath.Join(downloadDir, fileName)
 		if FileSizeMatches(fullPath, fileSize, verbose) {
 			log.Printf("file %v already downloaded skipping", fullPath)
@@ -103,7 +105,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 
 			urls, err := client.GetDownloadUrlsForFile(
 				p,
-				fileId,
+				fileID,
 				keyCode,
 				start,
 				end,
@@ -116,12 +118,12 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageId, keyCod
 				index := i
 
 				url := urls[index]
-				downloadUrl := url.Url
+				downloadURL := url.URL
 				filePart := url.Part
 				// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
 				tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
 				downloadLoc := filepath.Join(downloadDir, tmpName)
-				err = d.DownloadFile(downloadLoc, downloadUrl)
+				err = d.DownloadFile(downloadLoc, downloadURL)
 				if err != nil {
 					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
 					continue

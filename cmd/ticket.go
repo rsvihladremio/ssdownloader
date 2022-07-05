@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//cmd package contains all the command line flag configuration
 package cmd
 
 import (
@@ -53,10 +55,10 @@ var ticketCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if CpuProfile != "" {
-			f, err := os.Create(CpuProfile)
+		if CPUProfile != "" {
+			f, err := os.Create(CPUProfile)
 			if err != nil {
-				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CpuProfile, err)
+				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CPUProfile, err)
 			}
 			if err := pprof.StartCPUProfile(f); err != nil {
 				log.Fatalf("unable to start cpu profiling due to error %v", err)
@@ -90,10 +92,10 @@ var ticketCmd = &cobra.Command{
 		} else {
 			password = C.ZendeskToken
 		}
-		zendeskApi := zendesk.NewZenDeskAPI(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
-		ticketId := args[0]
+		zendeskAPI := zendesk.NewClient(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
+		ticketID := args[0]
 
-		results, err := zendeskApi.GetTicketComentsJSON(ticketId)
+		results, err := zendeskAPI.GetTicketComentsJSON(ticketID)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -114,10 +116,10 @@ var ticketCmd = &cobra.Command{
 				if err != nil {
 					log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
 				}
-				packageId := linkParts.PackageCode
+				packageID := linkParts.PackageCode
 				wg.Add(1)
 				err = p.Submit(func() {
-					err := sendsafely.DownloadFilesFromPackage(d, packageId, linkParts.KeyCode, C, filepath.Join("tickets", ticketId), Verbose)
+					err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
 					if err != nil {
 						log.Printf("error downloading %v", err)
 					}
@@ -129,14 +131,14 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		if !onlySendSafelyLinks {
-			attachments, err := zendesk.GetAttachementsFromComments(results)
+			attachments, err := zendesk.GetAttachmentsFromComments(results)
 			if err != nil {
 				log.Fatal(err)
 			}
 			for _, a := range attachments {
 				wg.Add(1)
 				err = p.Submit(func() {
-					if err := DownloadNonSendSafelyLink(d, a, ticketId); err != nil {
+					if err := DownloadNonSendSafelyLink(d, a, ticketID); err != nil {
 						log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
 					}
 					wg.Done()
@@ -150,12 +152,12 @@ var ticketCmd = &cobra.Command{
 	},
 }
 
-func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketId string) error {
+func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) error {
 	if a.Deleted {
 		return fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
 	}
 	commentDir := fmt.Sprintf("%v_%v", a.ParentCommentDate.Format("2006-01-02T150405Z0700"), a.ParentCommentID)
-	downloadDir := filepath.Join(C.DownloadDir, "tickets", ticketId, "attachments", commentDir)
+	downloadDir := filepath.Join(C.DownloadDir, "tickets", ticketID, "attachments", commentDir)
 	newFileName := filepath.Join(downloadDir, a.FileName)
 	if sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
 		log.Printf("file '%v' already downloaded skipping", newFileName)

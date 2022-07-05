@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//cmd package contains all the command line flag configuration
 package cmd
 
 import (
@@ -47,9 +49,9 @@ ssdownloader init
 
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if C.SsApiKey == "" {
+		if C.SsAPIKey == "" {
 			fmt.Print("(sendsafely api key):")
-			n, err := fmt.Scanln(&C.SsApiKey)
+			n, err := fmt.Scanln(&C.SsAPIKey)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -58,9 +60,9 @@ ssdownloader init
 				os.Exit(1)
 			}
 		}
-		if C.SsApiSecret == "" {
+		if C.SsAPISecret == "" {
 			fmt.Print("(sendsafely api secret):")
-			n, err := fmt.Scanln(&C.SsApiSecret)
+			n, err := fmt.Scanln(&C.SsAPISecret)
 			if err != nil {
 				log.Fatal(err)
 			}

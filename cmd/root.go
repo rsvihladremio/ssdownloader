@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//cmd package contains all the command line flag configuration
 package cmd
 
 import (
@@ -55,14 +57,14 @@ func PrintHeader(version, platform, arch, gitSha string) string {
 }
 
 // GitSha is added from the build and release scripts
-var GitSha string = "unknown"
+var GitSha = "unknown"
 
 // Version is pulled from the branch name and set in the build and release scripts
-var Version string = "unknownVersion"
+var Version = "unknownVersion"
 
-var platform string = runtime.GOOS
-var arch string = runtime.GOARCH
-var CpuProfile string
+var platform = runtime.GOOS
+var arch = runtime.GOARCH
+var CPUProfile string
 var MemProfile string
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -85,13 +87,13 @@ func DefaultDownloadDir() string {
 func init() {
 	fmt.Println(PrintHeader(Version, platform, arch, GitSha))
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose logging")
-	rootCmd.PersistentFlags().StringVar(&C.SsApiKey, "ss-api-key", "", "the SendSafely API key")
-	rootCmd.PersistentFlags().StringVar(&C.SsApiSecret, "ss-api-secret", "", "the SendSafely API secret")
+	rootCmd.PersistentFlags().StringVar(&C.SsAPIKey, "ss-api-key", "", "the SendSafely API key")
+	rootCmd.PersistentFlags().StringVar(&C.SsAPISecret, "ss-api-secret", "", "the SendSafely API secret")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskDomain, "zendesk-subdomain", "", "the customer domain part of the zendesk url that you login against ie https://test.zendesk.com would be 'test'")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskEmail, "zendesk-email", "", "zendesk email address")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskToken, "zendesk-token", "", "zendesk api token")
 	rootCmd.PersistentFlags().StringVar(&C.DownloadDir, "download-dir", DefaultDownloadDir(), "base directory to put downloads")
-	rootCmd.PersistentFlags().StringVar(&CpuProfile, "cpu-profile", "", "where to generate a cpu profile for diagnosing performance issues")
+	rootCmd.PersistentFlags().StringVar(&CPUProfile, "cpu-profile", "", "where to generate a cpu profile for diagnosing performance issues")
 	rootCmd.PersistentFlags().StringVar(&MemProfile, "mem-profile", "", "where to generate a mem profile for diagnosing performance issues")
 	rootCmd.PersistentFlags().IntVarP(&DownloadBufferSize, "download-buffer-size-kb", "b", 4096, "buffer size in kb to use during downloads")
 	rootCmd.PersistentFlags().IntVarP(&DownloadThreads, "download-threads", "t", 8, "number of threads to use when downloading")

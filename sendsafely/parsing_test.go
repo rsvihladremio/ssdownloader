@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -20,7 +22,7 @@ import (
 )
 
 func TestParsingDownloadUrls(t *testing.T) {
-	parser := SendSafelyApiParser{}
+	parser := APIParser{}
 	d, err := parser.ParseDownloadUrls(`{
 		"downloadUrls": [
 		  {
@@ -41,15 +43,15 @@ func TestParsingDownloadUrls(t *testing.T) {
 	if part != expectedPart {
 		t.Errorf("Part expected to be %v but was %v", expectedPart, part)
 	}
-	url := d[0].Url
-	expectedUrl := "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
-	if url != expectedUrl {
-		t.Errorf("Url expected to be %v but was %v", expectedUrl, url)
+	url := d[0].URL
+	expectedURL := "https://myserver/commercial/part?AWSAccessKeyId=ExampleKey&Expires=1554862678&Signature=MySignature"
+	if url != expectedURL {
+		t.Errorf("Url expected to be %v but was %v", expectedURL, url)
 	}
 }
 
 func TestParsingPackage(t *testing.T) {
-	parser := SendSafelyApiParser{}
+	parser := APIParser{}
 	//taken from https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation-200-approverlist
 	p, err := parser.ParsePackage(`{
 		"packageId": "GVG2-MNZT",
@@ -113,8 +115,8 @@ func TestParsingPackage(t *testing.T) {
 		t.Fatalf("unable to parse with error %v", err)
 	}
 
-	if p.PackageId != "GVG2-MNZT" {
-		t.Errorf("unexpected package id %v", p.PackageId)
+	if p.PackageID != "GVG2-MNZT" {
+		t.Errorf("unexpected package id %v", p.PackageID)
 	}
 
 	if p.PackageCode != "M0AEMIrTQe9XWRgGDKiKta1pXobmpKwAVafWgXjnBsw" {
@@ -127,8 +129,8 @@ func TestParsingPackage(t *testing.T) {
 	}
 
 	if lenFileIds > 0 {
-		if p.Files[0].FileId != "abcfile" {
-			t.Errorf("was expected abcfile but found %v", p.Files[0].FileId)
+		if p.Files[0].FileID != "abcfile" {
+			t.Errorf("was expected abcfile but found %v", p.Files[0].FileID)
 		}
 	}
 

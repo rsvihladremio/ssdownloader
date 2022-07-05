@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//zendesk package provides api access to the zendesk rest apis
 package zendesk
 
 import (
@@ -26,27 +28,80 @@ import (
 	"golang.org/x/net/html"
 )
 
+//ParserErr provides location, raw json data parsed and nested error
+type ParserErr struct {
+	Err      error
+	JSONData string
+	Location string
+}
+
+//Error provides location if one is present otherwise it will omit that text
+func (p ParserErr) Error() string {
+	if p.Location == "" {
+		// with no location we can return a shorter cleaner message
+		return fmt.Sprintf("parsing json data '%v' failed, error was '%v'", p.JSONData, p.Err)
+	}
+	return fmt.Sprintf("parsing json data '%v' failed for '%v', error was '%v'", p.JSONData, p.Location, p.Err)
+}
+
+//MissingJSONFieldError provides location, field name and raw json data parsed
+type MissingJSONFieldError struct {
+	FieldName string
+	JSONData  string
+	Location  string
+}
+
+//Error provides location if one is present otherwise it will omit that text
+func (m MissingJSONFieldError) Error() string {
+	if m.Location == "" {
+		// with no location we can return a shorter cleaner message
+		return fmt.Sprintf("parsing json data '%v' failed, missing '%v' field", m.JSONData, m.FieldName)
+	}
+	return fmt.Sprintf("parsing json data '%v' missing field '%v' in '%v'", m.JSONData, m.FieldName, m.Location)
+}
+
 // GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
 func GetLinksFromComments(jsonData string) ([]string, error) {
+	// using fastjson instead of the default golang json encoding libraries, fastjson can be 15 faster qnd
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
-		return []string{}, fmt.Errorf("parsing json data '%v' failed, error was '%v'", jsonData, err)
+		// this usually means the json is not to spec and is invalid, return the json back to the client for analysis
+		return []string{}, ParserErr{
+			Err:      err,
+			JSONData: jsonData,
+		}
 	}
+	// read comments field
 	commentsValue := result.Get("comments")
 	if !commentsValue.Exists() {
-		return []string{}, fmt.Errorf("parsing json data '%v' failed, missing comments field", jsonData)
+		return []string{}, MissingJSONFieldError{
+			JSONData:  jsonData,
+			FieldName: "comments",
+		}
 	}
+	// try and convert comments into an array (which is expected)
 	comments, err := commentsValue.Array()
 	if err != nil {
-		return []string{}, fmt.Errorf("parsing comments for jsonData '%v' failed, error was '%v'", jsonData, err)
+		// if the comments value is somehow not an array return an error back to the client
+		return []string{}, ParserErr{
+			Err:      err,
+			JSONData: jsonData,
+			Location: "comments",
+		}
 	}
 	var linksFound []string
+	//search the html_body of all the comments
 	for i, comment := range comments {
 		htmlBodyValue := comment.Get("html_body")
+		// if we get no html_body then this is failed parse and we are missing some data
 		if !htmlBodyValue.Exists() {
-			return []string{}, fmt.Errorf("parsing json data '%v' failed, missing html_body field for the '%v' comment (base index 0)", jsonData, i)
+			return []string{}, MissingJSONFieldError{
+				JSONData:  jsonData,
+				FieldName: "html_body",
+				Location:  fmt.Sprintf("comment %v (base index 0)", i),
+			}
 		}
 		htmlBody := htmlBodyValue.GetStringBytes()
 		z := html.NewTokenizer(bytes.NewBuffer(htmlBody))
@@ -58,12 +113,21 @@ func GetLinksFromComments(jsonData string) ([]string, error) {
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				return []string{}, fmt.Errorf("parsing html '%v' failed, with error %v for the '%v' comment (base index 0)", jsonData, z.Err(), i)
+				// return error with location of error so the client can diagnosis the issue
+				return []string{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("html_body field for the comment %v (base index 0)", i),
+				}
 			}
 			token := z.Token()
+			// if it is a link search for the href
 			if token.Data == "a" {
 				for _, a := range token.Attr {
 					if a.Key == "href" {
+						// if we find ANY href go ahead and add it to result set
+						// this is to allow future searching of different kinds of links in the text
+						// filtering hqppens later for sendsafely links
 						linksFound = append(linksFound, a.Val)
 						break
 					}
@@ -102,26 +166,36 @@ type Attachment struct {
 
 // GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
-func GetAttachementsFromComments(jsonData string) ([]Attachment, error) {
+func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
-		return []Attachment{}, fmt.Errorf("parsing json data '%v' failed, error was '%v'", jsonData, err)
+		return []Attachment{}, ParserErr{
+			Err:      err,
+			JSONData: jsonData,
+		}
 	}
 	commentsValue := result.Get("comments")
 	if !commentsValue.Exists() {
-		return []Attachment{}, fmt.Errorf("parsing json data '%v' failed, missing comments field", jsonData)
+		return []Attachment{}, MissingJSONFieldError{
+			JSONData:  jsonData,
+			FieldName: "comments",
+		}
 	}
 	comments, err := commentsValue.Array()
 	if err != nil {
-		return []Attachment{}, fmt.Errorf("parsing comments for jsonData '%v' failed, error was '%v'", jsonData, err)
+		return []Attachment{}, ParserErr{
+			Err:      err,
+			JSONData: jsonData,
+			Location: "comments",
+		}
 	}
 	var attachments []Attachment
 
 	for i, comment := range comments {
-		parentIdValue := comment.Get("id")
-		parentId, err := parentIdValue.Int64()
+		parentIDValue := comment.Get("id")
+		parentID, err := parentIDValue.Int64()
 		if err != nil {
 			return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'id' field a comments index %v", jsonData, err, i)
 		}
@@ -139,8 +213,8 @@ func GetAttachementsFromComments(jsonData string) ([]Attachment, error) {
 		if !attachmentsValues.Exists() {
 			return []Attachment{}, fmt.Errorf("parsing comments for jsonData '%v' failed, missing attachments field in comment index %v", jsonData, i)
 		}
-		attachmentsFromJson := attachmentsValues.GetArray()
-		for ai, a := range attachmentsFromJson {
+		attachmentsFromJSON := attachmentsValues.GetArray()
+		for ai, a := range attachmentsFromJSON {
 			fileNameValue := a.Get("file_name")
 			fileNameBytes, err := fileNameValue.StringBytes()
 			if err != nil {
@@ -153,13 +227,13 @@ func GetAttachementsFromComments(jsonData string) ([]Attachment, error) {
 				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'deleted' field at attachments index %v and comments index %v", jsonData, err, ai, i)
 			}
 
-			contentUrlValue := a.Get("content_url")
-			contentUrlBytes, err := contentUrlValue.StringBytes()
+			contentURLValue := a.Get("content_url")
+			contentURLBytes, err := contentURLValue.StringBytes()
 			if err != nil {
 				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'content_url' field at attachments index %v and comments index %v", jsonData, err, ai, i)
 			}
 
-			contentUrl := string(contentUrlBytes)
+			contentURL := string(contentURLBytes)
 			contentTypeValue := a.Get("content_type")
 			contentTypeBytes, err := contentTypeValue.StringBytes()
 			if err != nil {
@@ -173,11 +247,11 @@ func GetAttachementsFromComments(jsonData string) ([]Attachment, error) {
 				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'size' field at attachments index %v and comments index %v", jsonData, err, ai, i)
 			}
 			attachments = append(attachments, Attachment{
-				ParentCommentID:   parentId,
+				ParentCommentID:   parentID,
 				ParentCommentDate: createdAt,
 				FileName:          fileName,
 				Deleted:           isDeleted,
-				ContentURL:        contentUrl,
+				ContentURL:        contentURL,
 				ContentType:       contentType,
 				Size:              size,
 			})

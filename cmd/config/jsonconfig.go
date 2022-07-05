@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//config package handles the reading and writing of the app configuration file
 package config
 
 import (
@@ -25,8 +27,8 @@ import (
 )
 
 type Config struct {
-	SsApiKey      string
-	SsApiSecret   string
+	SsAPIKey      string
+	SsAPISecret   string
 	ZendeskDomain string
 	ZendeskEmail  string
 	ZendeskToken  string

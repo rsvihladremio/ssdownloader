@@ -13,6 +13,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
+//link package handles parsing of sendsafely links so that we can retrieve the identifying information in the query parameters
 package link
 
 import (
@@ -21,76 +23,76 @@ import (
 	"strings"
 )
 
-type LinkParts struct {
+type Parts struct {
 	Thread      string
 	PackageCode string
 	KeyCode     string
 }
 
 type KeyCodeIsMissingErr struct {
-	InputUrl string
+	InputURL string
 	KeyCode  string
 }
 
 func (k KeyCodeIsMissingErr) Error() string {
-	return fmt.Sprintf("expected to have fragment keyCode= in url '%v' but it is not present, the fragment detected is '%v'", k.InputUrl, k.KeyCode)
+	return fmt.Sprintf("expected to have fragment keyCode= in url '%v' but it is not present, the fragment detected is '%v'", k.InputURL, k.KeyCode)
 }
 
 type PackageCodeIsMissingErr struct {
-	InputUrl string
+	InputURL string
 }
 
 func (p PackageCodeIsMissingErr) Error() string {
-	return fmt.Sprintf("expected to have packageCode in url '%v' but it is not present", p.InputUrl)
+	return fmt.Sprintf("expected to have packageCode in url '%v' but it is not present", p.InputURL)
 }
 
 type ThreadIsMissingErr struct {
-	InputUrl string
+	InputURL string
 }
 
 func (p ThreadIsMissingErr) Error() string {
-	return fmt.Sprintf("expected to have thread in url '%v' but it is not present", p.InputUrl)
+	return fmt.Sprintf("expected to have thread in url '%v' but it is not present", p.InputURL)
 }
 
-type UrlParseErr struct {
-	Url     string
+type URLParseErr struct {
+	URL     string
 	BaseErr error
 }
 
-func (u UrlParseErr) Error() string {
-	return fmt.Sprintf("unable to parse url '%v' due to error '%v'", u.Url, u.BaseErr)
+func (u URLParseErr) Error() string {
+	return fmt.Sprintf("unable to parse url '%v' due to error '%v'", u.URL, u.BaseErr)
 }
 
 // ParseLink splits up a SendSafely package download URL into it's important parts
 // This allows us to download the package
-func ParseLink(inputUrl string) (LinkParts, error) {
+func ParseLink(inputURL string) (Parts, error) {
 	// attempt to parse this as a valid url, will fail if it is malformed
-	u, err := url.Parse(inputUrl)
+	u, err := url.Parse(inputURL)
 	if err != nil {
-		return LinkParts{}, UrlParseErr{
+		return Parts{}, URLParseErr{
 			BaseErr: err,
-			Url:     inputUrl,
+			URL:     inputURL,
 		}
 	}
 	// search the query parameters for packageCode and thread
 	query := u.Query()
 	if !query.Has("packageCode") {
-		return LinkParts{}, PackageCodeIsMissingErr{InputUrl: inputUrl}
+		return Parts{}, PackageCodeIsMissingErr{InputURL: inputURL}
 	}
 	if !query.Has("thread") {
-		return LinkParts{}, ThreadIsMissingErr{InputUrl: inputUrl}
+		return Parts{}, ThreadIsMissingErr{InputURL: inputURL}
 	}
 	// for whatever reason keyCode is stored as a fragment, this is a bit tricker but we know what it starts with
 	// however, this is the most fragile part and if the URL scheme varies a bit this will break badly
 	keyCodeRaw := u.Fragment
 	if !strings.HasPrefix(keyCodeRaw, "keyCode=") {
-		return LinkParts{}, KeyCodeIsMissingErr{
-			InputUrl: inputUrl,
+		return Parts{}, KeyCodeIsMissingErr{
+			InputURL: inputURL,
 			KeyCode:  keyCodeRaw,
 		}
 	}
 
-	return LinkParts{
+	return Parts{
 		Thread:      query.Get("thread"),
 		PackageCode: query.Get("packageCode"),
 		KeyCode:     keyCodeRaw[8:], //throwing away keyCode= and only keeping the rest of the string
