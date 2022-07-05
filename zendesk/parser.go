@@ -195,56 +195,150 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 	for i, comment := range comments {
 		parentIDValue := comment.Get("id")
+		if !parentIDValue.Exists() {
+			return []Attachment{}, MissingJSONFieldError{
+				FieldName: "id",
+				JSONData:  jsonData,
+				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
+			}
+		}
 		parentID, err := parentIDValue.Int64()
 		if err != nil {
-			return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'id' field a comments index %v", jsonData, err, i)
+			return []Attachment{}, ParserErr{
+				Err:      err,
+				JSONData: jsonData,
+				Location: fmt.Sprintf("'id' field at comments index %v", i),
+			}
 		}
 		parentCreatedAtValue := comment.Get("created_at")
+		if !parentCreatedAtValue.Exists() {
+			return []Attachment{}, MissingJSONFieldError{
+				FieldName: "created_at",
+				JSONData:  jsonData,
+				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
+			}
+		}
 		parentCreatedAtRaw, err := parentCreatedAtValue.StringBytes()
 		if err != nil {
-			return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for  'created_at' field a comments index %v", jsonData, err, i)
+			return []Attachment{}, ParserErr{
+				Err:      err,
+				JSONData: jsonData,
+				Location: fmt.Sprintf("'created_at' field a comments index %v", i),
+			}
 		}
 		createdAt, err := time.Parse(time.RFC3339, string(parentCreatedAtRaw))
 		if err != nil {
-			return []Attachment{}, fmt.Errorf(" parsing datetime for '%v' failed' due to error '%v' field a comments index %v", jsonData, err, i)
+			return []Attachment{}, ParserErr{
+				Err:      err,
+				JSONData: jsonData,
+				Location: fmt.Sprintf("'created_at' field a comments index %v", i),
+			}
 		}
 
 		attachmentsValues := comment.Get("attachments")
 		if !attachmentsValues.Exists() {
-			return []Attachment{}, fmt.Errorf("parsing comments for jsonData '%v' failed, missing attachments field in comment index %v", jsonData, i)
+			return []Attachment{}, MissingJSONFieldError{
+				FieldName: "attachments",
+				JSONData:  jsonData,
+				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
+			}
 		}
-		attachmentsFromJSON := attachmentsValues.GetArray()
+		attachmentsFromJSON, err := attachmentsValues.Array()
+		if err != nil {
+			// if the attachments value is somehow not an array return an error back to the client
+			return []Attachment{}, ParserErr{
+				Err:      err,
+				JSONData: jsonData,
+				Location: fmt.Sprintf("attachments field in comment %v (base index 0)", i),
+			}
+		}
 		for ai, a := range attachmentsFromJSON {
 			fileNameValue := a.Get("file_name")
+			if !fileNameValue.Exists() {
+				return []Attachment{}, MissingJSONFieldError{
+					FieldName: "file_name",
+					JSONData:  jsonData,
+					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
+				}
+			}
 			fileNameBytes, err := fileNameValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'file_name' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+				return []Attachment{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("file_name field in comment %v in attachment %v (base index 0)", i, ai),
+				}
 			}
 			fileName := string(fileNameBytes)
 			boolValue := a.Get("deleted")
+			if !boolValue.Exists() {
+				return []Attachment{}, MissingJSONFieldError{
+					FieldName: "deleted",
+					JSONData:  jsonData,
+					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
+				}
+			}
 			isDeleted, err := boolValue.Bool()
 			if err != nil {
-				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'deleted' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+				return []Attachment{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("deleted field in comment %v in attachment %v (base index 0)", i, ai),
+				}
 			}
 
 			contentURLValue := a.Get("content_url")
+			if !contentURLValue.Exists() {
+				return []Attachment{}, MissingJSONFieldError{
+					FieldName: "content_url",
+					JSONData:  jsonData,
+					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
+				}
+			}
 			contentURLBytes, err := contentURLValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'content_url' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+				return []Attachment{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("content_url field in comment %v in attachment %v (base index 0)", i, ai),
+				}
 			}
 
 			contentURL := string(contentURLBytes)
+
 			contentTypeValue := a.Get("content_type")
+			if !contentTypeValue.Exists() {
+				return []Attachment{}, MissingJSONFieldError{
+					FieldName: "content_type",
+					JSONData:  jsonData,
+					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
+				}
+			}
 			contentTypeBytes, err := contentTypeValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'content_type' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+				return []Attachment{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("content_type field in comment %v in attachment %v (base index 0)", i, ai),
+				}
 			}
 			contentType := string(contentTypeBytes)
 
 			sizeValue := a.Get("size")
+			if !sizeValue.Exists() {
+				return []Attachment{}, MissingJSONFieldError{
+					FieldName: "size",
+					JSONData:  jsonData,
+					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
+				}
+			}
 			size, err := sizeValue.Int64()
 			if err != nil {
-				return []Attachment{}, fmt.Errorf("parsing attachments for json data '%v' failed due to error '%v' for 'size' field at attachments index %v and comments index %v", jsonData, err, ai, i)
+				return []Attachment{}, ParserErr{
+					Err:      err,
+					JSONData: jsonData,
+					Location: fmt.Sprintf("size field in comment %v in attachment %v (base index 0)", i, ai),
+				}
 			}
 			attachments = append(attachments, Attachment{
 				ParentCommentID:   parentID,
