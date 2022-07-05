@@ -22,7 +22,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime/pprof"
 	"strings"
 	"sync"
 	"syscall"
@@ -54,32 +53,6 @@ var ticketCmd = &cobra.Command{
 		`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-
-		if CPUProfile != "" {
-			f, err := os.Create(CPUProfile)
-			if err != nil {
-				log.Fatalf("unable to create cpu profile '%v' due to error '%v'", CPUProfile, err)
-			}
-			if err := pprof.StartCPUProfile(f); err != nil {
-				log.Fatalf("unable to start cpu profiling due to error %v", err)
-			}
-			defer pprof.StopCPUProfile()
-		}
-		if MemProfile != "" {
-			f, err := os.Create(MemProfile)
-			if err != nil {
-				log.Fatalf("unable to create mem profile at '%v' due to error '%v'", MemProfile, err)
-			}
-			defer func() {
-				if err := f.Close(); err != nil {
-					log.Printf("WARN unable to close file handle for file '%v' due to error '%v'", MemProfile, err)
-				}
-			}()
-			if err := pprof.WriteHeapProfile(f); err != nil {
-				log.Fatalf("unable to start mem profiling due to error '%v'", err)
-			}
-
-		}
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
 		password := ""
 		if useZendeskPassword {

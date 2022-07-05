@@ -64,8 +64,6 @@ var Version = "unknownVersion"
 
 var platform = runtime.GOOS
 var arch = runtime.GOARCH
-var CPUProfile string
-var MemProfile string
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -93,8 +91,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskEmail, "zendesk-email", "", "zendesk email address")
 	rootCmd.PersistentFlags().StringVar(&C.ZendeskToken, "zendesk-token", "", "zendesk api token")
 	rootCmd.PersistentFlags().StringVar(&C.DownloadDir, "download-dir", DefaultDownloadDir(), "base directory to put downloads")
-	rootCmd.PersistentFlags().StringVar(&CPUProfile, "cpu-profile", "", "where to generate a cpu profile for diagnosing performance issues")
-	rootCmd.PersistentFlags().StringVar(&MemProfile, "mem-profile", "", "where to generate a mem profile for diagnosing performance issues")
 	rootCmd.PersistentFlags().IntVarP(&DownloadBufferSize, "download-buffer-size-kb", "b", 4096, "buffer size in kb to use during downloads")
 	rootCmd.PersistentFlags().IntVarP(&DownloadThreads, "download-threads", "t", 8, "number of threads to use when downloading")
 	initConfig()
