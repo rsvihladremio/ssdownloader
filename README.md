@@ -108,7 +108,7 @@ git tag v0.1.1
 gh repo view -w
 # review the draft and when done set it to publish
 ```
-
+### Windows
 Similarly on Windows there are powershell scripts of the same design
 
 to get started run
