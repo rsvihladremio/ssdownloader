@@ -54,6 +54,14 @@ func (p ThreadIsMissingErr) Error() string {
 	return fmt.Sprintf("expected to have thread in url '%v' but it is not present", p.InputURL)
 }
 
+type QIsMissingErr struct {
+	InputURL string
+}
+
+func (p QIsMissingErr) Error() string {
+	return fmt.Sprintf("Google wrapped url is missing the q= query string which contains the sendsafely url '%v' but it is not present", p.InputURL)
+}
+
 type URLParseErr struct {
 	URL     string
 	BaseErr error
@@ -66,6 +74,34 @@ func (u URLParseErr) Error() string {
 // ParseLink splits up a SendSafely package download URL into it's important parts
 // This allows us to download the package
 func ParseLink(inputURL string) (Parts, error) {
+	//escape url since google in email links will add things
+	if strings.HasPrefix(inputURL, "https://www.google.com/url") {
+		//pasting into the terminal will escape all the query parameters on mac
+		// so we are going to remove them
+		unescaped := strings.ReplaceAll(inputURL, "\\", "")
+		googleURL, err := url.Parse(unescaped)
+		if err != nil {
+			return Parts{}, URLParseErr{
+				BaseErr: err,
+				URL:     unescaped,
+			}
+		}
+		googleQuery := googleURL.Query()
+		if !googleQuery.Has("q") {
+			return Parts{}, QIsMissingErr{
+				InputURL: unescaped,
+			}
+		}
+		inputURL, err = url.PathUnescape(googleQuery.Get("q"))
+		if err != nil {
+			return Parts{}, URLParseErr{
+				BaseErr: err,
+				URL:     unescaped,
+			}
+		}
+
+	}
+
 	// attempt to parse this as a valid url, will fail if it is malformed
 	u, err := url.Parse(inputURL)
 	if err != nil {
