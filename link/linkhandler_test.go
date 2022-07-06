@@ -22,25 +22,80 @@ import (
 	"testing"
 )
 
-func TestLinkHandler(t *testing.T) {
-	url := "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
-	linkParks, err := ParseLink(url)
+func TestLinkHandlerWithEncodedByGoogleUrlMissingQ(t *testing.T) {
+	url := "https://www.google.com/url?wrong=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ"
+	_, err := ParseLink(url)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	expectedError := QIsMissingErr{InputURL: url}
+	if err.Error() != expectedError.Error() {
+		t.Errorf("expected\n'%q'\n but got\n'%q'", expectedError, err)
+	}
+}
+
+func TestLinkHandlerWithEncodedByGoogleUrlAfterPastedInTerminal(t *testing.T) {
+	url := "https://www.google.com/url\\?q\\=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE\\&sa\\=D\\&ust\\=11111111\\&usg\\=JJJJJJJJJ"
+	linkParts, err := ParseLink(url)
 	if err != nil {
 		t.Fatalf("unexected error '%v'", err)
 	}
 	expectedKeyCode := "MYKEYCODE"
-	if linkParks.KeyCode != expectedKeyCode {
-		t.Errorf("expected keycode '%v' but got '%v'", expectedKeyCode, linkParks.KeyCode)
+	if linkParts.KeyCode != expectedKeyCode {
+		t.Errorf("expected keycode '%v' but got '%v'", expectedKeyCode, linkParts.KeyCode)
 	}
 
 	expectedPackageCode := "MYPKGCODE"
-	if linkParks.PackageCode != expectedPackageCode {
-		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParks.PackageCode)
+	if linkParts.PackageCode != expectedPackageCode {
+		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
 	}
 
 	expectedThread := "MYTHREAD"
-	if linkParks.Thread != expectedThread {
-		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParks.Thread)
+	if linkParts.Thread != expectedThread {
+		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
+	}
+}
+func TestLinkHandlerWithEncodedByGoogleUrl(t *testing.T) {
+	url := "https://www.google.com/url?q=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ"
+	linkParts, err := ParseLink(url)
+	if err != nil {
+		t.Fatalf("unexected error '%v'", err)
+	}
+	expectedKeyCode := "MYKEYCODE"
+	if linkParts.KeyCode != expectedKeyCode {
+		t.Errorf("expected keycode '%v' but got '%v'", expectedKeyCode, linkParts.KeyCode)
+	}
+
+	expectedPackageCode := "MYPKGCODE"
+	if linkParts.PackageCode != expectedPackageCode {
+		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
+	}
+
+	expectedThread := "MYTHREAD"
+	if linkParts.Thread != expectedThread {
+		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
+	}
+}
+
+func TestLinkHandler(t *testing.T) {
+	url := "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
+	linkParts, err := ParseLink(url)
+	if err != nil {
+		t.Fatalf("unexected error '%v'", err)
+	}
+	expectedKeyCode := "MYKEYCODE"
+	if linkParts.KeyCode != expectedKeyCode {
+		t.Errorf("expected keycode '%v' but got '%v'", expectedKeyCode, linkParts.KeyCode)
+	}
+
+	expectedPackageCode := "MYPKGCODE"
+	if linkParts.PackageCode != expectedPackageCode {
+		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
+	}
+
+	expectedThread := "MYTHREAD"
+	if linkParts.Thread != expectedThread {
+		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
 	}
 }
 
@@ -99,7 +154,19 @@ func TestThreadMissing(t *testing.T) {
 	}
 }
 
-func TestInvalidUrl(t *testing.T) {
+func TestInvalidUrlForGoogleURL(t *testing.T) {
+	url := "https://www.google.com/url*$ù%?q=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ"
+	_, err := ParseLink(url)
+	if err == nil {
+		t.Fatalf("exected error '%v'", err)
+	}
+	expectedError := URLParseErr{URL: url, BaseErr: errors.New("parse \"https://www.google.com/url*$ù%?q=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ\": invalid URL escape \"%\"")}
+	if err.Error() != expectedError.Error() {
+		t.Errorf("expected\n'%v'\n but got\n'%v'", expectedError, err)
+	}
+}
+
+func TestInvalidURL(t *testing.T) {
 	url := "*$ù%"
 	_, err := ParseLink(url)
 	if err == nil {
