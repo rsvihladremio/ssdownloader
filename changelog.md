@@ -9,7 +9,7 @@
 ### Removed
 - CPU and Memory profiling options as they were rarely used
 
-## [v0.3.3] - 2022-07-04
+## [v0.3.2] - 2022-07-04
 ### Fixed
 - forgot to add wait group counter for attachment download leading to race condition
 
