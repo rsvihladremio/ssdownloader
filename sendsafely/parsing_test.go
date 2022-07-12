@@ -53,7 +53,7 @@ func TestParsingDownloadUrls(t *testing.T) {
 func TestParsingPackage(t *testing.T) {
 	parser := APIParser{}
 	//taken from https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation-200-approverlist
-	p, err := parser.ParsePackage(`{
+	p, err := parser.ParsePackage("GVG2-MNZT", `{
 		"packageId": "GVG2-MNZT",
 		"packageCode": "M0AEMIrTQe9XWRgGDKiKta1pXobmpKwAVafWgXjnBsw",
 		"serverSecret": "ACbuj9NKTkvjZ71Gc0t5zuU1xvba9XAouA",

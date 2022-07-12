@@ -63,7 +63,7 @@ func (s SortingErr) Error() string {
 	return fmt.Sprintf("unable to sort due to the following error '%v'", s.BaseErr)
 }
 
-func CombineFiles(fileNames []string, verbose bool) (string, error) {
+func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, newFileName string, err error) {
 	var sortErrors []string
 	sort.SliceStable(fileNames, func(i, j int) bool {
 		one := fileNames[i]
@@ -85,7 +85,7 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 		return intOne < intTwo
 	})
 	if len(sortErrors) > 0 {
-		return "", SortingErr{BaseErr: errors.New(strings.Join(sortErrors, ","))}
+		return -1, "", SortingErr{BaseErr: errors.New(strings.Join(sortErrors, ","))}
 	}
 	if verbose {
 		log.Printf("DEBUG: combining the following files: %v\n-", strings.Join(fileNames, "\n-"))
@@ -93,24 +93,28 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 	firstFile := filepath.Clean(fileNames[0])
 	match, err := FindNumberedSuffix(firstFile)
 	if err != nil {
-		return "", fmt.Errorf("unable to find suffix for file '%v' with error '%v'", firstFile, err)
+		return -1, "", fmt.Errorf("unable to find suffix for file '%v' with error '%v'", firstFile, err)
 	}
 	if !match {
-		return "", InvalidSuffixErr{
+		return -1, "", InvalidSuffixErr{
 			FileName: firstFile,
 		}
 	}
-	newFileName := RemoveAnySuffix(firstFile)
+	newFileName = RemoveAnySuffix(firstFile)
 	if len(fileNames) == 1 {
 		//optimize and skip the copy step
 		if err := os.Rename(firstFile, newFileName); err != nil {
-			return "", fmt.Errorf("unable to rename file '%v' to '%v' due to error '%v'", firstFile, newFileName, err)
+			return -1, "", fmt.Errorf("unable to rename file '%v' to '%v' due to error '%v'", firstFile, newFileName, err)
 		}
-		return newFileName, nil
+		fileInfo, err := os.Stat(newFileName)
+		if err != nil {
+			return -1, "", fmt.Errorf("unable to get file information for %v due to error %v", firstFile, err)
+		}
+		return fileInfo.Size(), newFileName, nil
 	}
 	newFileHandle, err := os.Create(filepath.Clean(newFileName))
 	if err != nil {
-		return "", fmt.Errorf("cannot create file '%v' due to error '%v'", newFileName, err)
+		return -1, "", fmt.Errorf("cannot create file '%v' due to error '%v'", newFileName, err)
 	}
 	defer func() {
 		err = newFileHandle.Close()
@@ -121,7 +125,7 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 	for _, f := range fileNames {
 		fileHandle, err := os.Open(filepath.Clean(f))
 		if err != nil {
-			return "", fmt.Errorf("unable to read file '%v' due to error '%v'", f, err)
+			return -1, "", fmt.Errorf("unable to read file '%v' due to error '%v'", f, err)
 		}
 		close := func() {
 			err = fileHandle.Close()
@@ -130,16 +134,17 @@ func CombineFiles(fileNames []string, verbose bool) (string, error) {
 			}
 		}
 		buf := make([]byte, 8192*1024)
-		_, err = io.CopyBuffer(newFileHandle, fileHandle, buf)
+		bytesWritten, err := io.CopyBuffer(newFileHandle, fileHandle, buf)
 		if err != nil {
 			close()
-			return "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)
+			return -1, "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)
 		}
+		totalBytesWritten += bytesWritten
 		close()
 		err = os.Remove(f)
 		if err != nil {
 			log.Printf("WARN unable to remove old file '%v' after copying it's contents to the new file due to error '%v' and it will have to be manually deleted", f, err)
 		}
 	}
-	return newFileName, nil
+	return totalBytesWritten, newFileName, nil
 }

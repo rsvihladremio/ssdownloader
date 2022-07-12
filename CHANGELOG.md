@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] - 2022-07-12
+### Added
+- now download the ticket text that is associated with a given package
+### Changed
+- directory structure of downloads now includes a timestamp in front of the package name, this makes it easy to scan to the latest package
+- now have bytes written in logs
+### Fixed
+- better log message when package not found
+
 ## [0.3.3] - 2022-07-06
 ### Added
 - added a decent number of tests
@@ -68,6 +77,7 @@
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
 
+[0.4.0]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.0...v0.3.1

@@ -19,6 +19,7 @@ package zendesk
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -28,10 +29,12 @@ func TestGetLinksFromComments(t *testing.T) {
 		 	"comments": [
 		 	  {
 		 		"attachments": [],
+				"plain_body": "Thanks for your help!example",
 				"html_body": "<p>Thanks for your help!</p><a href='http://example.com'>example</a>"
 			  },
 			  {
 				"attachments": [],
+			   "plain_body": "here is some more for your help!example 2",
 			   "html_body": "<p>here is some more for your help!</p><a href='http://example.com/file2'>example 2</a>"
 			 }
 			]
@@ -39,7 +42,10 @@ func TestGetLinksFromComments(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
-	expectedLinks := []string{"http://example.com", "http://example.com/file2"}
+	expectedLinks := []CommentTextWithLink{
+		{URL: "http://example.com", Body: "Thanks for your help!example"},
+		{URL: "http://example.com/file2", Body: "here is some more for your help!example 2"},
+	}
 	if !reflect.DeepEqual(expectedLinks, links) {
 		t.Errorf("expected %v but had %v", expectedLinks, links)
 	}
@@ -89,13 +95,16 @@ func TestGetLinksFromCommentsHasInvalidCommentsField(t *testing.T) {
 	}
 }
 
-func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
+func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
 	_, err := GetLinksFromComments(`{
 		"comments": [
 			{
-				"html_body": "<p>hello</p>"
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
 			},
-			{}
+			{ 
+				"html_body": "<p>test</p>"
+			}
 		]
 	}`)
 	if err == nil {
@@ -104,8 +113,31 @@ func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t\t{\n\t\t\t\t\"html_body\": \"<p>hello</p>\"\n\t\t\t},\n\t\t\t{}\n\t\t]\n\t}' missing field 'html_body' in 'comment 1 (base index 0)'"
-	if err.Error() != expectedErr {
+	expectedErr := "missing field 'plain_body' in 'comment 1 (base index 0)'"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
+	}
+}
+func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
+	_, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			},
+			{ 
+				"plain_body": "test"
+			}
+		]
+	}`)
+	if err == nil {
+		t.Error("expected error but was nil")
+	}
+	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
+		t.Errorf("expected MissingJSONFieldError but was %T", err)
+	}
+	expectedErr := "missing field 'html_body' in 'comment 1 (base index 0)'"
+	if !strings.Contains(err.Error(), expectedErr) {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
@@ -115,10 +147,12 @@ func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
 		"comments": [
 		  {
 			"attachments": [],
+			"plain_body": "Thanks for your help!",
 		   "html_body": "<p>Thanks for your help!</p>"
 		 },
 		 {
 		   "attachments": [],
+		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
 	   ]
@@ -136,10 +170,12 @@ func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
 		"comments": [
 		  {
 			"attachments": [],
+		   "plain_body": "Thanks for your help!",
 		   "html_body": "<p>Thanks for your help!</p>"
 		 },
 		 {
 		   "attachments": [],
+		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
 	   ]
@@ -150,9 +186,9 @@ func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"attachments\": [],\n\t\t   \"html_body\": \"<p>Thanks for your help!</p>\"\n\t\t },\n\t\t {\n\t\t   \"attachments\": [],\n\t\t  \"html_body\": \"<p>here is some more for your help!</p>\"\n\t\t}\n\t   ]\n\t}' missing field 'id' in 'in comment 0 (base index 0)'"
-	if err.Error() != expectedErr {
-		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
+	expectedErr := "missing field 'id' in 'in comment 0 (base index 0)'"
+	if !strings.Contains(err.Error(), expectedErr) {
+		t.Errorf("expected error text to container '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
@@ -219,12 +255,14 @@ func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
 			"id": 1,
 			"created_at": "2022-01-02T15:04:05Z",
 			"attachments": [],
+		   "plain_body": "Thanks for your help!",
 		   "html_body": "<p>Thanks for your help!</p>"
 		 },
 		 {
 			"id": 2,
 			"created_at": "2022-01-02T15:04:05Z",
 		   "attachments": [],
+		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
 	   ]

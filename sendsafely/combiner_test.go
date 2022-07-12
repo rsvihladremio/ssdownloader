@@ -119,7 +119,7 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 	for _, e := range entries {
 		files = append(files, filepath.Join(dirToGenerate, e.Name()))
 	}
-	f, err := CombineFiles(files, false)
+	w, f, err := CombineFiles(files, false)
 	if err != nil {
 		t.Fatalf("unexpected error combining files %v", err)
 	}
@@ -143,6 +143,10 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 		if lines[i] != expectedLine {
 			t.Errorf("unexpected '%v' from line %v but was '%v'", expectedLine, i, lines[i])
 		}
+	}
+	actualFileSize := len([]byte(contents))
+	if w != int64(actualFileSize) {
+		t.Errorf("expected %v and %v to match", w, actualFileSize)
 	}
 }
 func TestNoOpCombining(t *testing.T) {
@@ -175,7 +179,7 @@ func TestNoOpCombining(t *testing.T) {
 	for _, e := range entries {
 		files = append(files, filepath.Join(dirToGenerate, e.Name()))
 	}
-	f, err := CombineFiles(files, false)
+	_, f, err := CombineFiles(files, false)
 	if err != nil {
 		t.Fatalf("unexpected error combining files %v", err)
 	}
@@ -218,7 +222,7 @@ func TestCombiningOneBadSuffix(t *testing.T) {
 		}
 	}()
 
-	_, err = CombineFiles([]string{newFile}, false)
+	_, _, err = CombineFiles([]string{newFile}, false)
 	if err == nil {
 		t.Fatalf("expected error but did not have one")
 	}
@@ -259,7 +263,7 @@ func TestCombiningSeveralBadSuffixes(t *testing.T) {
 		}
 	}()
 
-	_, err = CombineFiles([]string{newFile, newFile2}, false)
+	_, _, err = CombineFiles([]string{newFile, newFile2}, false)
 	if err == nil {
 		t.Fatalf("expected error but did not have one")
 	}
@@ -298,7 +302,7 @@ func TestCombiningSeveralBadSuffixesReverseOrder(t *testing.T) {
 		}
 	}()
 
-	_, err = CombineFiles([]string{newFile, newFile2}, false)
+	_, _, err = CombineFiles([]string{newFile, newFile2}, false)
 	if err == nil {
 		t.Fatalf("expected error but did not have one")
 	}

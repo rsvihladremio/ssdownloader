@@ -124,13 +124,27 @@ func missingFieldError(fieldName, jsonBody string) error {
 //  "rootDirectoryId": "8c3c2184-e73e-4137-be92-e9c5b5661258",
 //  "response": "SUCCESS"
 //}
-func (s *APIParser) ParsePackage(packageJSON string) (Package, error) {
+func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package, error) {
 	var ssp Package
 
 	// if we were parsing lots of these we want to reuse the jsonParser to minimize allocations
 	v, err := s.jsonParser.Parse(packageJSON)
 	if err != nil {
 		return Package{}, fmt.Errorf("unexpected error parsing package json string '%v' with error '%v'", packageJSON, err)
+	}
+	responseValue := v.Get("response")
+	if responseValue.Exists() {
+		response := string(responseValue.GetStringBytes())
+		message := "UNKNOWN"
+		messageValue := v.Get("message")
+		if messageValue.Exists() {
+			message = string(messageValue.GetStringBytes())
+		}
+		if response == "UNKNOWN_PACKAGE" {
+			return Package{}, fmt.Errorf("unable to find package %v as it is likely expired", originalPackageID)
+		} else if response == "AUTHENTICATION_FAILED" {
+			return Package{}, fmt.Errorf("failed authentication for package %v due to '%v'", originalPackageID, message)
+		}
 	}
 	packageID := v.Get("packageId")
 	if !packageID.Exists() {

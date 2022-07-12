@@ -60,15 +60,22 @@ func (m MissingJSONFieldError) Error() string {
 	return fmt.Sprintf("parsing json data '%v' missing field '%v' in '%v'", m.JSONData, m.FieldName, m.Location)
 }
 
+// CommentTextWithLink takes the extracted link from the html_body and then also returns the body in text format
+// so that we can store the comment with the downloaded files
+type CommentTextWithLink struct {
+	Body string
+	URL  string
+}
+
 // GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
-func GetLinksFromComments(jsonData string) ([]string, error) {
+func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 	// using fastjson instead of the default golang json encoding libraries, fastjson can be 15 faster qnd
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
 		// this usually means the json is not to spec and is invalid, return the json back to the client for analysis
-		return []string{}, ParserErr{
+		return []CommentTextWithLink{}, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 		}
@@ -76,7 +83,7 @@ func GetLinksFromComments(jsonData string) ([]string, error) {
 	// read comments field
 	commentsValue := result.Get("comments")
 	if !commentsValue.Exists() {
-		return []string{}, MissingJSONFieldError{
+		return []CommentTextWithLink{}, MissingJSONFieldError{
 			JSONData:  jsonData,
 			FieldName: "comments",
 		}
@@ -85,19 +92,30 @@ func GetLinksFromComments(jsonData string) ([]string, error) {
 	comments, err := commentsValue.Array()
 	if err != nil {
 		// if the comments value is somehow not an array return an error back to the client
-		return []string{}, ParserErr{
+		return []CommentTextWithLink{}, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 			Location: "comments",
 		}
 	}
-	var linksFound []string
+	var linksFound []CommentTextWithLink
 	//search the html_body of all the comments
 	for i, comment := range comments {
+		bodyValue := comment.Get("plain_body")
+		// if we get no body then this is failed parse and we are missing some data
+		if !bodyValue.Exists() {
+			return []CommentTextWithLink{}, MissingJSONFieldError{
+				JSONData:  jsonData,
+				FieldName: "plain_body",
+				Location:  fmt.Sprintf("comment %v (base index 0)", i),
+			}
+		}
+		body := string(bodyValue.GetStringBytes())
+
 		htmlBodyValue := comment.Get("html_body")
 		// if we get no html_body then this is failed parse and we are missing some data
 		if !htmlBodyValue.Exists() {
-			return []string{}, MissingJSONFieldError{
+			return []CommentTextWithLink{}, MissingJSONFieldError{
 				JSONData:  jsonData,
 				FieldName: "html_body",
 				Location:  fmt.Sprintf("comment %v (base index 0)", i),
@@ -114,7 +132,7 @@ func GetLinksFromComments(jsonData string) ([]string, error) {
 					break
 				}
 				// return error with location of error so the client can diagnosis the issue
-				return []string{}, ParserErr{
+				return []CommentTextWithLink{}, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("html_body field for the comment %v (base index 0)", i),
@@ -128,7 +146,12 @@ func GetLinksFromComments(jsonData string) ([]string, error) {
 						// if we find ANY href go ahead and add it to result set
 						// this is to allow future searching of different kinds of links in the text
 						// filtering hqppens later for sendsafely links
-						linksFound = append(linksFound, a.Val)
+						linksFound = append(linksFound,
+							CommentTextWithLink{
+								Body: body,
+								URL:  a.Val,
+							},
+						)
 						break
 					}
 				}

@@ -48,12 +48,12 @@ func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	return fi.Size() == fileSize
 }
 
-func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) error {
+func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, err error) {
 
 	client := NewClient(c.SsAPIKey, c.SsAPISecret, verbose)
 	p, err := client.RetrievePackgeByID(packageID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	//making top level download directory if it does not exist
 	_, err = os.Stat(c.DownloadDir)
@@ -62,21 +62,23 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		log.Printf("making dir %v", c.DownloadDir)
 		err = os.Mkdir(c.DownloadDir, 0700)
 		if err != nil {
-			return fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+			return "", fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
 	}
 
 	shortPackageID := p.PackageID
+	//Add timestamp for sorting
+	fullPackageName := fmt.Sprintf("%v_%v", p.PackageTimestamp.Format("20060102T150405"), shortPackageID)
 	//make config directory for this package code if it does not exist
-	downloadDir := filepath.Join(c.DownloadDir, subDirToDownload, shortPackageID)
+	outDir = filepath.Join(c.DownloadDir, subDirToDownload, fullPackageName)
 
-	_, err = os.Stat(downloadDir)
+	_, err = os.Stat(outDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		configDir := filepath.Dir(downloadDir)
-		log.Printf("making dir %v", downloadDir)
-		err = os.MkdirAll(downloadDir, 0700)
+		configDir := filepath.Dir(outDir)
+		log.Printf("making dir %v", outDir)
+		err = os.MkdirAll(outDir, 0700)
 		if err != nil {
-			return fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+			return "", fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
 	}
 
@@ -86,7 +88,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		parts := f.Parts
 		fileSize := f.FileSize
 		fileID := f.FileID
-		fullPath := filepath.Join(downloadDir, fileName)
+		fullPath := filepath.Join(outDir, fileName)
 		if FileSizeMatches(fullPath, fileSize, verbose) {
 			log.Printf("file %v already downloaded skipping", fullPath)
 			continue
@@ -122,7 +124,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				filePart := url.Part
 				// we add the encrypted value here to make it obvious on reading the directory what step in the download process it is at
 				tmpName := fmt.Sprintf("%v.%v.encrypted", fileName, filePart)
-				downloadLoc := filepath.Join(downloadDir, tmpName)
+				downloadLoc := filepath.Join(outDir, tmpName)
 				err = d.DownloadFile(downloadLoc, downloadURL)
 				if err != nil {
 					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
@@ -144,11 +146,11 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				continue
 			}
 		}
-		newFile, err := CombineFiles(fileNames, verbose)
+		written, newFile, err := CombineFiles(fileNames, verbose)
 		if err != nil {
 			log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
 		} else {
-			log.Printf("file '%v is complete", newFile)
+			log.Printf("file '%v is complete and is %v on disk", newFile, human(written))
 		}
 		if !FileSizeMatches(fullPath, fileSize, verbose) {
 			log.Printf("ERROR: file %v failed verification, removing", fullPath)
@@ -158,7 +160,18 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		}
 
 	}
-	return nil
+	return outDir, nil
+}
+
+func human(bytes int64) string {
+	if bytes > 1024*1024*1024 {
+		return fmt.Sprintf("%.2f gb", float64(bytes)/(1024.0*1024.0*1024.0))
+	} else if bytes > 1024*1024 {
+		return fmt.Sprintf("%.2f mb", float64(bytes)/(1024.0*1024.0))
+	} else if bytes > 1024 {
+		return fmt.Sprintf("%.2f kb", float64(bytes)/1024.0)
+	}
+	return fmt.Sprintf("%v bytes", bytes)
 }
 
 func calculateExecutionCalls(parts int) []PartRequests {

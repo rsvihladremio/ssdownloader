@@ -97,7 +97,7 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 			log.Printf("DEBUG: Package %v Reponse '%v'", packageID, prettyJSONBuffer.String())
 		}
 	}
-	return s.parser.ParsePackage(string(rawResponseBody))
+	return s.parser.ParsePackage(packageID, string(rawResponseBody))
 }
 
 // GenerateRequestSignature is a utility method to generate the ss-request-signature header

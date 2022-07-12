@@ -50,7 +50,7 @@ var linkCmd = &cobra.Command{
 		}
 		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
-		err = sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
+		_, err = sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
 			log.Fatal(err)
 		}

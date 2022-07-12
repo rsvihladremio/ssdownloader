@@ -116,6 +116,34 @@ func TestRetrievePackgeById(t *testing.T) {
 	}
 }
 
+// the missing package case, this mimics the actual production api as of 2022-07-12
+func TestRetrievePackageIsMissing(t *testing.T) {
+	// since we are using a mock http api we can use any api secret we feel like
+	ssClient := NewClient("myApiKey", "mySecret", false)
+
+	// pass in the resty httpy client that the SendSafelyClient uses so that
+	// httpmock can replace it's transport parameter with a mock one
+	// preventing remote calls from going to SendSafely
+	httpmock.ActivateNonDefault(ssClient.client.GetClient())
+	defer httpmock.DeactivateAndReset()
+	packageID := "ABDC-DDFAF"
+	resp := `{"needsApproval":false,"passwordRequired":false,"life":0,"isVDR":false,"isArchived":false,"totalDirectories":0,"totalFiles":0,"allowReplyAll":false,"packageContainsMessage":false,"response":"UNKNOWN_PACKAGE","message":"Package ID does not exist"}`
+
+	// Exact URL match
+	url := strings.Join([]string{URL, "package", packageID}, "/")
+	responder := httpmock.NewStringResponder(200, resp) //yes they really log 200 when you get an error
+
+	httpmock.RegisterResponder("GET", url, responder)
+	_, err := ssClient.RetrievePackgeByID(packageID)
+	if err == nil {
+		t.Fatal("expected error retrieving id")
+	}
+	expectedError := "unable to find package ABDC-DDFAF as it is likely expired"
+	if err.Error() != expectedError {
+		t.Errorf("expected error '%v' but was '%v'", expectedError, err)
+	}
+}
+
 // the bad auth case, this mimics the actual production api as of 2022-06-20
 func TestRetrievePackageHasBadAuth(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
@@ -138,7 +166,7 @@ func TestRetrievePackageHasBadAuth(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error retrieving id")
 	}
-	expectedError := "unable to get packageId from '{\"response\":\"AUTHENTICATION_FAILED\",\"message\":\"Invalid API Key\"}'"
+	expectedError := "failed authentication for package ABDC-DDFAF due to 'Invalid API Key'"
 	if err.Error() != expectedError {
 		t.Errorf("expected error '%v' but was '%v'", expectedError, err)
 	}

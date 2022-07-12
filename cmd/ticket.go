@@ -72,7 +72,7 @@ var ticketCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		urls, err := zendesk.GetLinksFromComments(results)
+		commentLinkTuples, err := zendesk.GetLinksFromComments(results)
 		if err != nil {
 			log.Fatalf("unable parse comments with error '%v'", err)
 		}
@@ -83,7 +83,8 @@ var ticketCmd = &cobra.Command{
 
 		defer p.Release()
 		var wg sync.WaitGroup
-		for _, url := range urls {
+		for _, c := range commentLinkTuples {
+			url := c.URL
 			if strings.HasPrefix(url, "https://sendsafely") {
 				linkParts, err := link.ParseLink(url)
 				if err != nil {
@@ -92,9 +93,14 @@ var ticketCmd = &cobra.Command{
 				packageID := linkParts.PackageCode
 				wg.Add(1)
 				err = p.Submit(func() {
-					err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
+					outDir, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
 					if err != nil {
 						log.Printf("error downloading %v", err)
+					} else {
+						err = os.WriteFile(filepath.Join(outDir, "comment.txt"), []byte(c.Body), 0600)
+						if err != nil {
+							log.Printf("error writing comments %v", err)
+						}
 					}
 					wg.Done()
 				})
@@ -112,7 +118,7 @@ var ticketCmd = &cobra.Command{
 				wg.Add(1)
 				err = p.Submit(func() {
 					if err := DownloadNonSendSafelyLink(d, a, ticketID); err != nil {
-						log.Printf("WARN: error '%v' processing attachement %v skipping", err, a.FileName)
+						log.Printf("WARN: error '%v' processing attachment %v skipping", err, a.FileName)
 					}
 					wg.Done()
 				})
