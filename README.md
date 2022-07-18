@@ -25,13 +25,20 @@ Other features include:
 ## Quickstart
 
 On mac I suggest homebrew:
-```sh
-$ brew tap rsvihladremio/ssdownloader
-$ brew install ssdownloader
-$ ssdownloader init
-$ ssdownloader ticket 9999 
-$ ssdownloader main-a3caa66-darwin-amd64
 
+```sh
+brew tap rsvihladremio/ssdownloader
+brew install ssdownloader
+```
+
+```sh
+ssdownloader init
+ssdownloader ticket 9999 
+ssdownloader main-a3caa66-darwin-amd64
+```
+and then you should see something like the following
+
+```sh
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely/tickets/9999
 2022/06/23 10:35:35 downloading fqfqsdfqds-fdfsd-fdqfd-fqdfq-fdqfdsffqdfq - works.zip
@@ -43,11 +50,20 @@ $ ssdownloader main-a3caa66-darwin-amd64
 On Linux or WSL do the following:
 
 ```sh
-$ curl -sSfL https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install | sh 
-$ ssdownloader init
-$ ssdownloader ticket 9999 
-$ ssdownloader main-a3caa66-darwin-amd64
+curl -sSfL https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install | sh 
+```
 
+then you can run
+
+```sh
+ssdownloader init
+ssdownloader ticket 9999 
+ssdownloader main-a3caa66-darwin-amd64
+```
+
+and then you should see something like the following
+
+```sh
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely/tickets/9999
 2022/06/23 10:35:35 downloading fqfqsdfqds-fdfsd-fdqfd-fqdfq-fdqfdsffqdfq - works.zip
@@ -58,12 +74,20 @@ $ ssdownloader main-a3caa66-darwin-amd64
 On Windows do the following:
 
 ```sh
-$ Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
-$ irm https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install.ps1  | iex 
-$ .\ssdownloader.exe init
-$ .\ssdownloader.exe ticket 9999 
-$ .\ssdownloader.exe main-a3caa66-darwin-amd64
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser # Optional: Needed to run a remote script the first time
+irm https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/install.ps1  | iex 
+```
 
+then you can run
+
+```sh
+.\ssdownloader.exe init
+.\ssdownloader.exe ticket 9999 
+.\ssdownloader.exe main-a3caa66-darwin-amd64
+```
+and you should see something like the following output
+
+```sh
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely
 2022/06/23 10:35:35 making dir /Users/foo/.sendsafely/tickets/9999
 2022/06/23 10:35:35 downloading fqfqsdfqds-fdfsd-fdqfd-fqdfq-fdqfdsffqdfq - works.zip
