@@ -1,7 +1,6 @@
 # script/install: Script to install from source, eventually when there 
 #                 are releases this will switch to latest release
 
-#commenting out until this script makes it into a tag
 $latestTag=@(git describe --tags @(git rev-list --tags --max-count=1))
 
 Invoke-WebRequest -outfile bootstrap.ps1 "https://raw.githubusercontent.com/rsvihladremio/ssdownloader/$latestTag/script/bootstrap.ps1"
