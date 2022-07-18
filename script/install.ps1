@@ -11,10 +11,10 @@ if ($ARCH -like 'ARM*') {
 } else { 
    echo "INTEL ARCH" 
    $download="ssdownloader-windows-amd64.zip"
-   $download="folder=ssdownloader-windows-amd64"
+   $download_folder="ssdownloader-windows-amd64"
 }
 
-$url="https://github.com/rsvihladremio/ssdownloader/releases/latest/$download"
+$url="https://github.com/rsvihladremio/ssdownloader/releases/latest/download/$download"
 Invoke-WebRequest  -Uri $url -OutFile $download -ContentType 'application/octet-stream'
 
 Write-Output "Checking if scoop is installed"

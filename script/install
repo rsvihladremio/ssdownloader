@@ -20,7 +20,7 @@ else
 fi
 
 DOWNLOAD=ssdownloader-$OS-$ARCH.zip
-curl -o $DOWNLOAD "https://github.com/rsvihladremio/ssdownloader/releases/latest/$DOWNLOAD"
+curl -o $DOWNLOAD "https://github.com/rsvihladremio/ssdownloader/releases/latest/download/$DOWNLOAD"
 unzip $DOWNLOAD
 cd ssdownloader-$OS-$ARCH
 sudo cp ./ssdownloader /usr/local/bin/
