@@ -38,7 +38,7 @@ if (Get-Command 'unzip' -errorAction SilentlyContinue) {
     Get-Date
     scoop install unzip
 }
-
 unzip .\"$download"
-
+cp .\bin\ssdownloader.exe .
+Remove-Item -recurse .\bin
 Remove-Item ".\$download"
