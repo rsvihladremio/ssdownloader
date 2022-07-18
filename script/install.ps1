@@ -2,14 +2,12 @@
 #                 are releases this will switch to latest release
 
 #commenting out until this script makes it into a tag
-#$latestTag=@(git describe --tags @(git rev-list --tags --max-count=1))
-$latestTag="main"
+$latestTag=@(git describe --tags @(git rev-list --tags --max-count=1))
 
 Invoke-WebRequest -outfile bootstrap.ps1 "https://raw.githubusercontent.com/rsvihladremio/ssdownloader/$latestTag/script/bootstrap.ps1"
 .\bootstrap.ps1
 
-#$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/tags/$latestTag.zip"
-$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/heads/main.zip"
+$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/tags/$latestTag.zip"
 $fileName="$latestTag.zip"
 Invoke-WebRequest  -Uri $url -OutFile $fileName -ContentType 'application/octet-stream'
 
