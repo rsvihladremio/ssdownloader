@@ -40,7 +40,5 @@ if (Get-Command 'unzip' -errorAction SilentlyContinue) {
 }
 
 unzip .\"$download"
-cp $download".."\ssdownloader.exe ..\
 
-Set-Location ..
 Remove-Item ".\$download"
