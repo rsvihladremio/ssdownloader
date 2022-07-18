@@ -6,12 +6,12 @@ $download=""
 $download_folder=""
 if ($ARCH -like 'ARM*') { 
    echo "ARM ARCH"
-   $download=ssdownloader-windows-arm64.zip
-   $download_folder=ssdownloader-windows-arm64
+   $download="ssdownloader-windows-arm64.zip"
+   $download_folder="ssdownloader-windows-arm64"
 } else { 
    echo "INTEL ARCH" 
-   $download=ssdownloader-windows-amd64.zip
-   $download_folder=ssdownloader-windows-amd64
+   $download="ssdownloader-windows-amd64.zip"
+   $download="folder=ssdownloader-windows-amd64"
 }
 
 $url="https://github.com/rsvihladremio/ssdownloader/releases/latest/$download"
