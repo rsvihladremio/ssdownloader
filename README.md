@@ -24,6 +24,9 @@ Other features include:
 
 ## Quickstart
 
+First there are binaries [here](https://github.com/rsvihladremio/ssdownloader/releases) so you can always get those
+if any of the following methods do not work for you.
+
 On mac I suggest homebrew:
 
 ```sh
@@ -45,7 +48,6 @@ and then you should see something like the following
 2022/06/23 10:35:35 downloading cbabd5ba-fdqf-fdqdf-qfd-fqdfsdfqs - problem.zip
 2022/06/23 10:35:35 downloading server.log
 ```
-
 
 On Linux or WSL do the following:
 
