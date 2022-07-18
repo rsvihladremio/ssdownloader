@@ -1,23 +1,46 @@
 # script/install: Script to install from source, eventually when there 
 #                 are releases this will switch to latest release
 
-$latestTag=@(git describe --tags @(git rev-list --tags --max-count=1))
+$ARCH=(Get-CimInstance -ClassName win32_operatingsystem).OSArchitecture
+$download=""
+$download_folder=""
+if ($ARCH -like 'ARM*') { 
+   echo "ARM ARCH"
+   $download=ssdownloader-windows-arm64.zip
+   $download_folder=ssdownloader-windows-arm64
+} else { 
+   echo "INTEL ARCH" 
+   $download=ssdownloader-windows-amd64.zip
+   $download_folder=ssdownloader-windows-amd64
+}
 
-Invoke-WebRequest -outfile bootstrap.ps1 "https://raw.githubusercontent.com/rsvihladremio/ssdownloader/$latestTag/script/bootstrap.ps1"
-.\bootstrap.ps1
+$url="https://github.com/rsvihladremio/ssdownloader/releases/latest/$download"
+Invoke-WebRequest  -Uri $url -OutFile $download -ContentType 'application/octet-stream'
 
-$url="https://github.com/rsvihladremio/ssdownloader/archive/refs/tags/$latestTag.zip"
-$fileName="$latestTag.zip"
-Invoke-WebRequest  -Uri $url -OutFile $fileName -ContentType 'application/octet-stream'
+Write-Output "Checking if scoop is installed"
+Get-Date
 
+if (Get-Command 'scoop' -errorAction SilentlyContinue) {
+    "scoop installed"
+} else {
+    Write-Output "scoop not found installing"
+    Get-Date
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+    Invoke-RestMethod get.scoop.sh | Invoke-Expression
+}
 
-unzip .\"$latestTag.zip"
-#for some reason tag loses v portion
-$version=$latestTag.Trim("v"," ")
-Set-Location ssdownloader-$version
-go build -o ..\ssdownloader.exe
+Write-Output "Checking if unzip is installed"
+Get-Date
+if (Get-Command 'unzip' -errorAction SilentlyContinue) {
+    "unzip installed"
+} else {
+    Write-Output "unzip not found installing"
+    Get-Date
+    scoop install unzip
+}
+
+unzip .\"$download"
+cp $download".."\ssdownloader.exe ..\
 
 Set-Location ..
-Remove-Item .\ssdownloader-$version -Force -Recurse 
-Remove-Item .\bootstrap.ps1
-Remove-Item ".\$fileName"
+Remove-Item ".\$download"

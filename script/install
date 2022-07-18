@@ -3,14 +3,27 @@
 # script/install: Script to install from source, eventually when there 
 #                 are releases this will switch to latest release
 
-curl -L -o bootstrap https://raw.githubusercontent.com/rsvihladremio/ssdownloader/main/script/bootstrap
-sh ./bootstrap
-curl -L -o main.zip https://github.com/rsvihladremio/ssdownloader/archive/refs/heads/main.zip
-unzip main.zip
-cd ssdownloader-main 
-go build -o ssdownloader 
-sudo cp ./ssdownloader /usr/local/bin
+DOWNLOAD=""
+OS=""
+ARCH=`uname -m`
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+	OS="linux"
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	OS="darwin"
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+	OS="linux"
+elif [[ "$OSTYPE" == "msys" ]]; then
+	OS="linux"
+else
+        echo script for os type $OSTYPE is unsupported, build from sournce instead 
+	exit 1
+fi
+
+DOWNLOAD=ssdownloader-$OS-$ARCH.zip
+curl -o $DOWNLOAD "https://github.com/rsvihladremio/ssdownloader/releases/latest/$DOWNLOAD"
+unzip $DOWNLOAD
+cd ssdownloader-$OS-$ARCH
+sudo cp ./ssdownloader /usr/local/bin/
 cd ..
-rm -fr ssdownloader-main 
-rm boostrap
-rm main.zip
+rm -fr $DOWNLOAD
+rm -fr ssdownloader-$OS-$ARCH
