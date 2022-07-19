@@ -26,6 +26,7 @@ import (
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/rsvihladremio/ssdownloader/downloader"
+	"github.com/rsvihladremio/ssdownloader/futils"
 )
 
 type PartRequests struct {
@@ -48,12 +49,11 @@ func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
 	return fi.Size() == fileSize
 }
 
-func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, err error) {
-
+func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, invalidFiles []string, err error) {
 	client := NewClient(c.SsAPIKey, c.SsAPISecret, verbose)
 	p, err := client.RetrievePackgeByID(packageID)
 	if err != nil {
-		return "", err
+		return "", []string{}, err
 	}
 	//making top level download directory if it does not exist
 	_, err = os.Stat(c.DownloadDir)
@@ -62,7 +62,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		log.Printf("making dir %v", c.DownloadDir)
 		err = os.Mkdir(c.DownloadDir, 0700)
 		if err != nil {
-			return "", fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
 	}
 
@@ -78,7 +78,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		log.Printf("making dir %v", outDir)
 		err = os.MkdirAll(outDir, 0700)
 		if err != nil {
-			return "", fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
+			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
 	}
 
@@ -89,7 +89,15 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		fileSize := f.FileSize
 		fileID := f.FileID
 		fullPath := filepath.Join(outDir, fileName)
-		if FileSizeMatches(fullPath, fileSize, verbose) {
+		exists, err := futils.FileExists(fullPath)
+		if err != nil {
+			log.Printf("unable to check if file %v exists due to error %v. Skipping file to prevent overwriting existing one.", fullPath, err)
+			continue
+		}
+		if exists {
+			if !FileSizeMatches(fullPath, fileSize, verbose) {
+				invalidFiles = append(invalidFiles, fullPath)
+			}
 			log.Printf("file %v already downloaded skipping", fullPath)
 			continue
 		}
@@ -153,14 +161,11 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 			log.Printf("file '%v is complete and is %v on disk", newFile, human(written))
 		}
 		if !FileSizeMatches(fullPath, fileSize, verbose) {
-			log.Printf("ERROR: file %v failed verification, removing", fullPath)
-			if err := os.Remove(newFile); err != nil {
-				log.Printf("WARN: unexpected failure removing file %v due to error %v", newFile, err)
-			}
+			invalidFiles = append(invalidFiles, fullPath)
 		}
 
 	}
-	return outDir, nil
+	return outDir, invalidFiles, nil
 }
 
 func human(bytes int64) string {
