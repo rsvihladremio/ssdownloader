@@ -138,14 +138,8 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		wg.Wait()
-
-		if len(allInvalidFiles) > 0 {
-			fmt.Println()
-			fmt.Println("the following files failed validation")
-			fmt.Println("-------------------------------------")
-			for _, f := range allInvalidFiles {
-				fmt.Printf("* %v\n", f)
-			}
+		if result := InvalidFilesReport(allInvalidFiles); result != "" {
+			fmt.Println(result)
 		}
 	},
 }

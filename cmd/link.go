@@ -55,13 +55,9 @@ var linkCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
-		if len(invalidFiles) > 0 {
-			fmt.Println()
-			fmt.Println("the following files failed validation")
-			fmt.Println("-------------------------------------")
-			for _, f := range invalidFiles {
-				fmt.Printf("* %v\n", f)
-			}
+
+		if result := InvalidFilesReport(invalidFiles); result != "" {
+			fmt.Println(result)
 		}
 	},
 }
