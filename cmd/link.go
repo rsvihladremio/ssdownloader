@@ -18,6 +18,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
@@ -50,9 +51,13 @@ var linkCmd = &cobra.Command{
 		}
 		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
-		_, err = sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
+		_, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if result := InvalidFilesReport(invalidFiles); result != "" {
+			fmt.Println(result)
 		}
 	},
 }

@@ -28,6 +28,7 @@ import (
 
 	"github.com/panjf2000/ants/v2"
 	"github.com/rsvihladremio/ssdownloader/downloader"
+	"github.com/rsvihladremio/ssdownloader/futils"
 	"github.com/rsvihladremio/ssdownloader/link"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
 	"github.com/rsvihladremio/ssdownloader/zendesk"
@@ -82,6 +83,8 @@ var ticketCmd = &cobra.Command{
 		}
 
 		defer p.Release()
+		var m sync.Mutex
+		var allInvalidFiles []string
 		var wg sync.WaitGroup
 		for _, c := range commentLinkTuples {
 			url := c.URL
@@ -93,10 +96,13 @@ var ticketCmd = &cobra.Command{
 				packageID := linkParts.PackageCode
 				wg.Add(1)
 				err = p.Submit(func() {
-					outDir, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
+					outDir, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
 					if err != nil {
 						log.Printf("error downloading %v", err)
 					} else {
+						m.Lock()
+						allInvalidFiles = append(allInvalidFiles, invalidFiles...)
+						m.Unlock()
 						err = os.WriteFile(filepath.Join(outDir, "comment.txt"), []byte(c.Body), 0600)
 						if err != nil {
 							log.Printf("error writing comments %v", err)
@@ -117,8 +123,12 @@ var ticketCmd = &cobra.Command{
 			for _, a := range attachments {
 				wg.Add(1)
 				err = p.Submit(func() {
-					if err := DownloadNonSendSafelyLink(d, a, ticketID); err != nil {
+					if invalidFiles, err := DownloadNonSendSafelyLink(d, a, ticketID); err != nil {
 						log.Printf("WARN: error '%v' processing attachment %v skipping", err, a.FileName)
+					} else {
+						m.Lock()
+						allInvalidFiles = append(allInvalidFiles, invalidFiles...)
+						m.Unlock()
 					}
 					wg.Done()
 				})
@@ -128,46 +138,53 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		wg.Wait()
+		if result := InvalidFilesReport(allInvalidFiles); result != "" {
+			fmt.Println(result)
+		}
 	},
 }
 
-func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) error {
+func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) (invalidFiles []string, err error) {
 	if a.Deleted {
-		return fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
+		return invalidFiles, fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
 	}
 	commentDir := fmt.Sprintf("%v_%v", a.ParentCommentDate.Format("2006-01-02T150405Z0700"), a.ParentCommentID)
 	downloadDir := filepath.Join(C.DownloadDir, "tickets", ticketID, "attachments", commentDir)
 	newFileName := filepath.Join(downloadDir, a.FileName)
-	if sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
-		log.Printf("file '%v' already downloaded skipping", newFileName)
-		return nil
+	exists, err := futils.FileExists(newFileName)
+	if err != nil {
+		return invalidFiles, fmt.Errorf("unable to see if there is an existing file named %v due to error %v, skipping download", newFileName, err)
 	}
+	if exists {
+		if !sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
+			return invalidFiles, fmt.Errorf("already downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
+		}
+		log.Printf("file '%v' already downloaded skipping", newFileName)
+		return invalidFiles, nil
+	}
+
 	log.Printf("downloading attachment '%v'", newFileName)
 	if _, err := os.Stat(downloadDir); err != nil {
 		if os.IsNotExist(err) {
 			err = os.MkdirAll(downloadDir, 0700)
 			if err != nil {
-				return fmt.Errorf("unable to make dir %v due to error '%v", downloadDir, err)
+				return invalidFiles, fmt.Errorf("unable to make dir %v due to error '%v", downloadDir, err)
 			}
 		} else {
-			return fmt.Errorf("unable to read dir %v due to error '%v", downloadDir, err)
+			return invalidFiles, fmt.Errorf("unable to read dir %v due to error '%v", downloadDir, err)
 		}
 	}
 
 	if err := d.DownloadFile(newFileName, a.ContentURL); err != nil {
-		return fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
+		return invalidFiles, fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
 	}
 	if !sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
-		defer func() {
-			if err := os.Remove(newFileName); err != nil {
-				log.Printf("WARN: unexpected error '%v' trying to remove file '%v', remove manually", err, newFileName)
-			}
-		}()
-		return fmt.Errorf("file %v failed verification and did not meet expected size %v", newFileName, a.Size)
+		invalidFiles = append(invalidFiles, newFileName)
+		return invalidFiles, fmt.Errorf("newly downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
 	}
 	log.Printf("attachement '%v' is complete", newFileName)
 
-	return nil
+	return invalidFiles, nil
 }
 
 func init() {
