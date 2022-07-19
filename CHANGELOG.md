@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1] - 2022-07-19
+### Added
+- files that fail validation are reported at the end of the output
+### Changed
+- if the file exists at all but is not valid, this is logged instead of clobbered by a new download
+- files that are invalid are not deleted after download
+
 ## [0.4.0] - 2022-07-12
 ### Added
 - now download the ticket text that is associated with a given package
