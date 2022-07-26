@@ -48,13 +48,13 @@
 ### Changed
 - will not redownload a file already downloaded now
 
-## [v0.2.4] - 2022-06-27
+## [0.2.4] - 2022-06-27
 ### Changed
 - package id is shortened to match what zendesk shows
 ### Fixed
 - a trivial sort bug was breaking larger files
 
-## [v0.2.3] - 2022-06-24
+## [0.2.3] - 2022-06-24
 ### Added
 - more testing!!!
 ### Changed
@@ -83,7 +83,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
-
+[0.4.1]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.1...v0.3.2
