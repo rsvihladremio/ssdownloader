@@ -69,14 +69,29 @@ var ticketCmd = &cobra.Command{
 		zendeskAPI := zendesk.NewClient(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
 		ticketID := args[0]
 
-		results, err := zendeskAPI.GetTicketComentsJSON(ticketID)
-		if err != nil {
-			log.Fatal(err)
+		// MC -- change for paging
+		var commentLinkTuples []zendesk.CommentTextWithLink
+		empty_string := ""
+		var next_page *string = &empty_string
+		results := ""
+
+		for next_page != nil {
+			var page_results []zendesk.CommentTextWithLink
+			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, next_page)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			page_results, next_page, err = zendesk.GetLinksFromComments(results)
+			if err != nil {
+				log.Fatalf("unable parse comments with error '%v'", err)
+			}
+
+			// Append to array (short hand with "...")
+			commentLinkTuples = append(commentLinkTuples, page_results...)
+
 		}
-		commentLinkTuples, err := zendesk.GetLinksFromComments(results)
-		if err != nil {
-			log.Fatalf("unable parse comments with error '%v'", err)
-		}
+
 		p, err := ants.NewPool(DownloadThreads)
 		if err != nil {
 			log.Fatalf("cannot initialize thread pool due to error %v", err)
@@ -116,7 +131,7 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		if !onlySendSafelyLinks {
-			attachments, err := zendesk.GetAttachmentsFromComments(results)
+			attachments, next_page, err := zendesk.GetAttachmentsFromComments(results)
 			if err != nil {
 				log.Fatal(err)
 			}

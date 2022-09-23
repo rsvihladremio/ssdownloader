@@ -69,21 +69,39 @@ type CommentTextWithLink struct {
 
 // GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
-func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
+func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, *string, error) {
 	// using fastjson instead of the default golang json encoding libraries, fastjson can be 15 faster qnd
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
 		// this usually means the json is not to spec and is invalid, return the json back to the client for analysis
-		return []CommentTextWithLink{}, ParserErr{
+		return []CommentTextWithLink{}, nil, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 		}
 	}
+
+	// read paging values
+	var nextPage *string
+	nextPageResult := result.Get("next_page")
+	if nextPageResult.Type() == fastjson.TypeString {
+		nextPageBytes, err := nextPageResult.StringBytes()
+		if err != nil {
+			return []CommentTextWithLink{}, nil, fmt.Errorf("while trying to get next page: %v\n Json data: %v", err, result)
+		}
+		if len(nextPageBytes) > 0 {
+			// Assign
+			nextPageString := string(nextPageBytes)
+			nextPage = &nextPageString
+		} else {
+			nextPage = nil
+		}
+	}
+
 	// read comments field
 	commentsValue := result.Get("comments")
 	if !commentsValue.Exists() {
-		return []CommentTextWithLink{}, MissingJSONFieldError{
+		return []CommentTextWithLink{}, nil, MissingJSONFieldError{
 			JSONData:  jsonData,
 			FieldName: "comments",
 		}
@@ -92,7 +110,7 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 	comments, err := commentsValue.Array()
 	if err != nil {
 		// if the comments value is somehow not an array return an error back to the client
-		return []CommentTextWithLink{}, ParserErr{
+		return []CommentTextWithLink{}, nil, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 			Location: "comments",
@@ -104,7 +122,7 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 		bodyValue := comment.Get("plain_body")
 		// if we get no body then this is failed parse and we are missing some data
 		if !bodyValue.Exists() {
-			return []CommentTextWithLink{}, MissingJSONFieldError{
+			return []CommentTextWithLink{}, nil, MissingJSONFieldError{
 				JSONData:  jsonData,
 				FieldName: "plain_body",
 				Location:  fmt.Sprintf("comment %v (base index 0)", i),
@@ -115,7 +133,7 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 		htmlBodyValue := comment.Get("html_body")
 		// if we get no html_body then this is failed parse and we are missing some data
 		if !htmlBodyValue.Exists() {
-			return []CommentTextWithLink{}, MissingJSONFieldError{
+			return []CommentTextWithLink{}, nil, MissingJSONFieldError{
 				JSONData:  jsonData,
 				FieldName: "html_body",
 				Location:  fmt.Sprintf("comment %v (base index 0)", i),
@@ -132,7 +150,7 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 					break
 				}
 				// return error with location of error so the client can diagnosis the issue
-				return []CommentTextWithLink{}, ParserErr{
+				return []CommentTextWithLink{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("html_body field for the comment %v (base index 0)", i),
@@ -158,7 +176,7 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, error) {
 			}
 		}
 	}
-	return linksFound, nil
+	return linksFound, nextPage, nil
 }
 
 // Attachment maps to
@@ -189,26 +207,44 @@ type Attachment struct {
 
 // GetLinksFromComments is parsing out the links from the html_
 // docs are here https://developer.zendesk.com/api-reference/ticketing/tickets/ticket_comments/#list-comments
-func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
+func GetAttachmentsFromComments(jsonData string) ([]Attachment, *string, error) {
 
 	jsonParser := fastjson.Parser{}
 	result, err := jsonParser.Parse(jsonData)
 	if err != nil {
-		return []Attachment{}, ParserErr{
+		return []Attachment{}, nil, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 		}
 	}
+
+	// read paging values
+	var nextPage *string
+	nextPageResult := result.Get("next_page")
+	if nextPageResult.Type() == fastjson.TypeString {
+		nextPageBytes, err := nextPageResult.StringBytes()
+		if err != nil {
+			return []Attachment{}, nil, fmt.Errorf("while trying to get next page: %v\n Json data: %v", err, result)
+		}
+		if len(nextPageBytes) > 0 {
+			// Assign
+			nextPageString := string(nextPageBytes)
+			nextPage = &nextPageString
+		} else {
+			nextPage = nil
+		}
+	}
+
 	commentsValue := result.Get("comments")
 	if !commentsValue.Exists() {
-		return []Attachment{}, MissingJSONFieldError{
+		return []Attachment{}, nil, MissingJSONFieldError{
 			JSONData:  jsonData,
 			FieldName: "comments",
 		}
 	}
 	comments, err := commentsValue.Array()
 	if err != nil {
-		return []Attachment{}, ParserErr{
+		return []Attachment{}, nil, ParserErr{
 			Err:      err,
 			JSONData: jsonData,
 			Location: "comments",
@@ -219,7 +255,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 	for i, comment := range comments {
 		parentIDValue := comment.Get("id")
 		if !parentIDValue.Exists() {
-			return []Attachment{}, MissingJSONFieldError{
+			return []Attachment{}, nil, MissingJSONFieldError{
 				FieldName: "id",
 				JSONData:  jsonData,
 				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
@@ -227,7 +263,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		}
 		parentID, err := parentIDValue.Int64()
 		if err != nil {
-			return []Attachment{}, ParserErr{
+			return []Attachment{}, nil, ParserErr{
 				Err:      err,
 				JSONData: jsonData,
 				Location: fmt.Sprintf("'id' field at comments index %v", i),
@@ -235,7 +271,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		}
 		parentCreatedAtValue := comment.Get("created_at")
 		if !parentCreatedAtValue.Exists() {
-			return []Attachment{}, MissingJSONFieldError{
+			return []Attachment{}, nil, MissingJSONFieldError{
 				FieldName: "created_at",
 				JSONData:  jsonData,
 				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
@@ -243,7 +279,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		}
 		parentCreatedAtRaw, err := parentCreatedAtValue.StringBytes()
 		if err != nil {
-			return []Attachment{}, ParserErr{
+			return []Attachment{}, nil, ParserErr{
 				Err:      err,
 				JSONData: jsonData,
 				Location: fmt.Sprintf("'created_at' field a comments index %v", i),
@@ -251,7 +287,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		}
 		createdAt, err := time.Parse(time.RFC3339, string(parentCreatedAtRaw))
 		if err != nil {
-			return []Attachment{}, ParserErr{
+			return []Attachment{}, nil, ParserErr{
 				Err:      err,
 				JSONData: jsonData,
 				Location: fmt.Sprintf("'created_at' field a comments index %v", i),
@@ -260,7 +296,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 		attachmentsValues := comment.Get("attachments")
 		if !attachmentsValues.Exists() {
-			return []Attachment{}, MissingJSONFieldError{
+			return []Attachment{}, nil, MissingJSONFieldError{
 				FieldName: "attachments",
 				JSONData:  jsonData,
 				Location:  fmt.Sprintf("in comment %v (base index 0)", i),
@@ -269,7 +305,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		attachmentsFromJSON, err := attachmentsValues.Array()
 		if err != nil {
 			// if the attachments value is somehow not an array return an error back to the client
-			return []Attachment{}, ParserErr{
+			return []Attachment{}, nil, ParserErr{
 				Err:      err,
 				JSONData: jsonData,
 				Location: fmt.Sprintf("attachments field in comment %v (base index 0)", i),
@@ -278,7 +314,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 		for ai, a := range attachmentsFromJSON {
 			fileNameValue := a.Get("file_name")
 			if !fileNameValue.Exists() {
-				return []Attachment{}, MissingJSONFieldError{
+				return []Attachment{}, nil, MissingJSONFieldError{
 					FieldName: "file_name",
 					JSONData:  jsonData,
 					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
@@ -286,7 +322,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			}
 			fileNameBytes, err := fileNameValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, ParserErr{
+				return []Attachment{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("file_name field in comment %v in attachment %v (base index 0)", i, ai),
@@ -295,7 +331,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			fileName := string(fileNameBytes)
 			boolValue := a.Get("deleted")
 			if !boolValue.Exists() {
-				return []Attachment{}, MissingJSONFieldError{
+				return []Attachment{}, nil, MissingJSONFieldError{
 					FieldName: "deleted",
 					JSONData:  jsonData,
 					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
@@ -303,7 +339,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			}
 			isDeleted, err := boolValue.Bool()
 			if err != nil {
-				return []Attachment{}, ParserErr{
+				return []Attachment{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("deleted field in comment %v in attachment %v (base index 0)", i, ai),
@@ -312,7 +348,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 			contentURLValue := a.Get("content_url")
 			if !contentURLValue.Exists() {
-				return []Attachment{}, MissingJSONFieldError{
+				return []Attachment{}, nil, MissingJSONFieldError{
 					FieldName: "content_url",
 					JSONData:  jsonData,
 					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
@@ -320,7 +356,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			}
 			contentURLBytes, err := contentURLValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, ParserErr{
+				return []Attachment{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("content_url field in comment %v in attachment %v (base index 0)", i, ai),
@@ -331,7 +367,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 			contentTypeValue := a.Get("content_type")
 			if !contentTypeValue.Exists() {
-				return []Attachment{}, MissingJSONFieldError{
+				return []Attachment{}, nil, MissingJSONFieldError{
 					FieldName: "content_type",
 					JSONData:  jsonData,
 					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
@@ -339,7 +375,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			}
 			contentTypeBytes, err := contentTypeValue.StringBytes()
 			if err != nil {
-				return []Attachment{}, ParserErr{
+				return []Attachment{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("content_type field in comment %v in attachment %v (base index 0)", i, ai),
@@ -349,7 +385,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 
 			sizeValue := a.Get("size")
 			if !sizeValue.Exists() {
-				return []Attachment{}, MissingJSONFieldError{
+				return []Attachment{}, nil, MissingJSONFieldError{
 					FieldName: "size",
 					JSONData:  jsonData,
 					Location:  fmt.Sprintf("in comment %v in attachment %v (base index 0)", i, ai),
@@ -357,7 +393,7 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			}
 			size, err := sizeValue.Int64()
 			if err != nil {
-				return []Attachment{}, ParserErr{
+				return []Attachment{}, nil, ParserErr{
 					Err:      err,
 					JSONData: jsonData,
 					Location: fmt.Sprintf("size field in comment %v in attachment %v (base index 0)", i, ai),
@@ -374,6 +410,6 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, error) {
 			})
 		}
 	}
-	return attachments, nil
+	return attachments, nextPage, nil
 
 }
