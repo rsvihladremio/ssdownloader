@@ -46,7 +46,7 @@ func TestRetrievePackgeById(t *testing.T) {
 	// we are expecting a GET request with the exact url specified above, if that exact match happens
 	// the json body setup in the responder will return instead of hitting the remote sendsafely server
 	httpmock.RegisterResponder("GET", url, responder)
-	comments, err := zdClient.GetTicketComentsJSON(ticketID)
+	comments, err := zdClient.GetTicketComentsJSON(ticketID, nil)
 	if err != nil {
 		t.Fatalf("unexpected error retrieving id '%v'", err)
 	}

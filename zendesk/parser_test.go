@@ -25,7 +25,7 @@ import (
 )
 
 func TestGetLinksFromComments(t *testing.T) {
-	links, err := GetLinksFromComments(` {
+	links, _, err := GetLinksFromComments(` {
 		 	"comments": [
 		 	  {
 		 		"attachments": [],
@@ -52,7 +52,7 @@ func TestGetLinksFromComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidJson(t *testing.T) {
-	_, err := GetLinksFromComments(`{}`)
+	_, _, err := GetLinksFromComments(`{}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -66,7 +66,7 @@ func TestGetLinksFromCommentsHasInvalidJson(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsIsMissingComments(t *testing.T) {
-	_, err := GetLinksFromComments(``)
+	_, _, err := GetLinksFromComments(``)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -80,7 +80,7 @@ func TestGetLinksFromCommentsIsMissingComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidCommentsField(t *testing.T) {
-	_, err := GetLinksFromComments(`{
+	_, _, err := GetLinksFromComments(`{
 		"comments":{}
 	}`)
 	if err == nil {
@@ -96,7 +96,7 @@ func TestGetLinksFromCommentsHasInvalidCommentsField(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
-	_, err := GetLinksFromComments(`{
+	_, _, err := GetLinksFromComments(`{
 		"comments": [
 			{
 				"html_body": "<p>hello</p>",
@@ -119,7 +119,7 @@ func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
 	}
 }
 func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
-	_, err := GetLinksFromComments(`{
+	_, _, err := GetLinksFromComments(`{
 		"comments": [
 			{
 				"html_body": "<p>hello</p>",
@@ -143,7 +143,7 @@ func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
-	links, err := GetLinksFromComments(`{
+	links, _, err := GetLinksFromComments(`{
 		"comments": [
 		  {
 			"attachments": [],
@@ -166,7 +166,7 @@ func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"attachments": [],
@@ -193,7 +193,7 @@ func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveWrongIDType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": "1"}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": "1"}]}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -207,7 +207,7 @@ func TestGetAttachmentsFromCommentHaveWrongIDType(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveNoCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1}]}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -221,7 +221,7 @@ func TestGetAttachmentsFromCommentHaveNoCreatedAt(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveBlankCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":""}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":""}]}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -235,7 +235,7 @@ func TestGetAttachmentsFromCommentHaveBlankCreatedAt(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveInvalidCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":[]}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":[]}]}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -249,7 +249,7 @@ func TestGetAttachmentsFromCommentHaveInvalidCreatedAt(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
-	attachements, err := GetAttachmentsFromComments(`{
+	attachements, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -276,7 +276,7 @@ func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
 }
 
 func TestGetAttachmentsFromComments(t *testing.T) {
-	attachments, err := GetAttachmentsFromComments(`{
+	attachments, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -374,7 +374,7 @@ func TestGetAttachmentsFromComments(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsMissingFileName(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -403,7 +403,7 @@ func TestGetAttachmentsFromCommentsMissingFileName(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsInvalidFileName(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -433,7 +433,7 @@ func TestGetAttachmentsFromCommentsInvalidFileName(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsMissingDeleted(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -462,7 +462,7 @@ func TestGetAttachmentsFromCommentsMissingDeleted(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsInvalidDelete(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -491,7 +491,7 @@ func TestGetAttachmentsFromCommentsInvalidDelete(t *testing.T) {
 	}
 }
 func TestGetAttachmentsFromCommentsMissingContentUrl(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -520,7 +520,7 @@ func TestGetAttachmentsFromCommentsMissingContentUrl(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsInvalidContentUrl(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -550,7 +550,7 @@ func TestGetAttachmentsFromCommentsInvalidContentUrl(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsMissingContentType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -579,7 +579,7 @@ func TestGetAttachmentsFromCommentsMissingContentType(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsInvalidContentType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -608,7 +608,7 @@ func TestGetAttachmentsFromCommentsInvalidContentType(t *testing.T) {
 	}
 }
 func TestGetAttachmentsFromCommentsMissingSize(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -637,7 +637,7 @@ func TestGetAttachmentsFromCommentsMissingSize(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsInvalidSize(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -666,7 +666,7 @@ func TestGetAttachmentsFromCommentsInvalidSize(t *testing.T) {
 	}
 }
 func TestGetAttachmentsFromCommentsAreMissingAttachmentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -691,7 +691,7 @@ func TestGetAttachmentsFromCommentsAreMissingAttachmentsField(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsHaveInvalidAttachmentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -717,7 +717,7 @@ func TestGetAttachmentsFromCommentsHaveInvalidAttachmentsField(t *testing.T) {
 	}
 }
 func TestGetAttachmentsFromCommentsIsMissingComments(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{}`)
+	_, _, err := GetAttachmentsFromComments(`{}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -731,7 +731,7 @@ func TestGetAttachmentsFromCommentsIsMissingComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidJSON(t *testing.T) {
-	_, err := GetAttachmentsFromComments(``)
+	_, _, err := GetAttachmentsFromComments(``)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -745,7 +745,7 @@ func TestGetLinksFromCommentsHasInvalidJSON(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsHasInvalidCommentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments":{}
 	}`)
 	if err == nil {

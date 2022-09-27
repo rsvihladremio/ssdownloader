@@ -413,3 +413,25 @@ func GetAttachmentsFromComments(jsonData string) ([]Attachment, *string, error) 
 	return attachments, nextPage, nil
 
 }
+
+func GetComments(jsonData string) (commentsValue *fastjson.Value, err error) {
+
+	jsonParser := fastjson.Parser{}
+	result, err := jsonParser.Parse(jsonData)
+	if err != nil {
+		return result, ParserErr{
+			Err:      err,
+			JSONData: jsonData,
+		}
+	}
+
+	commentsValue = result.Get("comments")
+	if !commentsValue.Exists() {
+		return result, MissingJSONFieldError{
+			JSONData:  jsonData,
+			FieldName: "comments",
+		}
+	}
+
+	return commentsValue, err
+}

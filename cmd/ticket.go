@@ -69,27 +69,31 @@ var ticketCmd = &cobra.Command{
 		zendeskAPI := zendesk.NewClient(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
 		ticketID := args[0]
 
-		// MC -- change for paging
+		// Handle paging when ticket comments > 100
 		var commentLinkTuples []zendesk.CommentTextWithLink
+		var attachments []zendesk.Attachment
 		empty_string := ""
 		var next_page *string = &empty_string
-		results := ""
 
 		for next_page != nil {
-			var page_results []zendesk.CommentTextWithLink
+			var comment_results []zendesk.CommentTextWithLink
 			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, next_page)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			page_results, next_page, err = zendesk.GetLinksFromComments(results)
+			comment_results, next_page, err = zendesk.GetLinksFromComments(results)
 			if err != nil {
 				log.Fatalf("unable parse comments with error '%v'", err)
 			}
+			// Append to array for comments (short hand with "...")
+			commentLinkTuples = append(commentLinkTuples, comment_results...)
 
-			// Append to array (short hand with "...")
-			commentLinkTuples = append(commentLinkTuples, page_results...)
-
+			att_results, _, err := zendesk.GetAttachmentsFromComments(results)
+			if err != nil {
+				log.Fatalf("unable parse attachments with error '%v'", err)
+			}
+			// Append to array for attachments
+			attachments = append(attachments, att_results...)
 		}
 
 		p, err := ants.NewPool(DownloadThreads)
@@ -131,10 +135,6 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		if !onlySendSafelyLinks {
-			attachments, next_page, err := zendesk.GetAttachmentsFromComments(results)
-			if err != nil {
-				log.Fatal(err)
-			}
 			for _, a := range attachments {
 				wg.Add(1)
 				err = p.Submit(func() {
