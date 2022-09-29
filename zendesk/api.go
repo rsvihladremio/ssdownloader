@@ -74,10 +74,10 @@ func URL(subDomain, ticketID string) string {
 // 	  }
 // 	]
 //   }
-func (z *Client) GetTicketComentsJSON(ticketID string, page_url *string) (string, error) {
+func (z *Client) GetTicketComentsJSON(ticketID string, pageUrl *string) (string, error) {
 	url := URL(z.subDomain, ticketID)
-	if page_url != nil && *page_url != "" {
-		url = *page_url
+	if pageUrl != nil && *pageUrl != "" {
+		url = *pageUrl
 	}
 	auth := fmt.Sprintf("%v/token:%v", z.username, z.password)
 	base64Auth := base64.StdEncoding.EncodeToString([]byte(auth))
