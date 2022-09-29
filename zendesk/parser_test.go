@@ -785,7 +785,7 @@ func TestGetAttachmentsFromCommentsHasInvalidCommentsField(t *testing.T) {
 }
 
 func TestMissingPagingField(t *testing.T) {
-	_, page_result, err := GetLinksFromComments(`{
+	_, pageResult, err := GetLinksFromComments(`{
 		"comments": [
 			{
 				"html_body": "<p>hello</p>",
@@ -800,8 +800,8 @@ func TestMissingPagingField(t *testing.T) {
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
-	if page_result != nil {
-		t.Errorf("expected null for \"next_page\" but was %v", page_result)
+	if pageResult != nil {
+		t.Errorf("expected null for \"next_page\" but was %v", pageResult)
 	}
 	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t\t{\n\t\t\t\t\"html_body\": \"<p>hello</p>\",\n\t\t\t\t\"plain_body\": \"hello\"\n\t\t\t},\n\t\t\t{ \n\t\t\t\t\"plain_body\": \"test\"\n\t\t\t}\n\t\t\t],\n\t\t\t\"not_next_page\": \"https://testing.dremio/foo?page=1\"\n\t\t }' failed for 'next_page', error was '<nil>'"
 	if err.Error() != expectedErr {

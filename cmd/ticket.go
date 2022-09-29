@@ -72,28 +72,28 @@ var ticketCmd = &cobra.Command{
 		// Handle paging when ticket comments > 100
 		var commentLinkTuples []zendesk.CommentTextWithLink
 		var attachments []zendesk.Attachment
-		empty_string := ""
-		var next_page *string = &empty_string
+		emptyString := ""
+		var nextPage *string = &emptyString
 
-		for next_page != nil {
-			var comment_results []zendesk.CommentTextWithLink
-			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, next_page)
+		for nextPage != nil {
+			var commentResults []zendesk.CommentTextWithLink
+			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, nextPage)
 			if err != nil {
 				log.Fatal(err)
 			}
-			comment_results, next_page, err = zendesk.GetLinksFromComments(results)
+			commentResults, nextPage, err = zendesk.GetLinksFromComments(results)
 			if err != nil {
 				log.Fatalf("unable parse comments with error '%v'", err)
 			}
 			// Append to array for comments (short hand with "...")
-			commentLinkTuples = append(commentLinkTuples, comment_results...)
+			commentLinkTuples = append(commentLinkTuples, commentResults...)
 
-			att_results, _, err := zendesk.GetAttachmentsFromComments(results)
+			attResults, _, err := zendesk.GetAttachmentsFromComments(results)
 			if err != nil {
 				log.Fatalf("unable parse attachments with error '%v'", err)
 			}
 			// Append to array for attachments
-			attachments = append(attachments, att_results...)
+			attachments = append(attachments, attResults...)
 		}
 
 		p, err := ants.NewPool(DownloadThreads)
