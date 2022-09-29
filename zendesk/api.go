@@ -77,10 +77,8 @@ func URL(subDomain, ticketID string) string {
 func (z *Client) GetTicketComentsJSON(ticketID string, page_url *string) (string, error) {
 	url := URL(z.subDomain, ticketID)
 	if page_url != nil && *page_url != "" {
-		log.Printf("page_url used: %v", *page_url)
 		url = *page_url
 	}
-	log.Printf("URL used: %v", url)
 	auth := fmt.Sprintf("%v/token:%v", z.username, z.password)
 	base64Auth := base64.StdEncoding.EncodeToString([]byte(auth))
 	r, err := z.client.R().
