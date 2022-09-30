@@ -69,14 +69,33 @@ var ticketCmd = &cobra.Command{
 		zendeskAPI := zendesk.NewClient(C.ZendeskEmail, password, C.ZendeskDomain, Verbose)
 		ticketID := args[0]
 
-		results, err := zendeskAPI.GetTicketComentsJSON(ticketID)
-		if err != nil {
-			log.Fatal(err)
+		// Handle paging when ticket comments > 100
+		var commentLinkTuples []zendesk.CommentTextWithLink
+		var attachments []zendesk.Attachment
+		emptyString := ""
+		var nextPage *string = &emptyString
+
+		for nextPage != nil {
+			var commentResults []zendesk.CommentTextWithLink
+			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, nextPage)
+			if err != nil {
+				log.Fatal(err)
+			}
+			commentResults, nextPage, err = zendesk.GetLinksFromComments(results)
+			if err != nil {
+				log.Fatalf("unable parse comments with error '%v'", err)
+			}
+			// Append to array for comments (short hand with "...")
+			commentLinkTuples = append(commentLinkTuples, commentResults...)
+
+			attResults, _, err := zendesk.GetAttachmentsFromComments(results)
+			if err != nil {
+				log.Fatalf("unable parse attachments with error '%v'", err)
+			}
+			// Append to array for attachments
+			attachments = append(attachments, attResults...)
 		}
-		commentLinkTuples, err := zendesk.GetLinksFromComments(results)
-		if err != nil {
-			log.Fatalf("unable parse comments with error '%v'", err)
-		}
+
 		p, err := ants.NewPool(DownloadThreads)
 		if err != nil {
 			log.Fatalf("cannot initialize thread pool due to error %v", err)
@@ -116,10 +135,6 @@ var ticketCmd = &cobra.Command{
 			}
 		}
 		if !onlySendSafelyLinks {
-			attachments, err := zendesk.GetAttachmentsFromComments(results)
-			if err != nil {
-				log.Fatal(err)
-			}
 			for _, a := range attachments {
 				wg.Add(1)
 				err = p.Submit(func() {

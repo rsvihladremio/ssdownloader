@@ -25,7 +25,7 @@ import (
 )
 
 func TestGetLinksFromComments(t *testing.T) {
-	links, err := GetLinksFromComments(` {
+	links, _, err := GetLinksFromComments(` {
 		 	"comments": [
 		 	  {
 		 		"attachments": [],
@@ -37,7 +37,8 @@ func TestGetLinksFromComments(t *testing.T) {
 			   "plain_body": "here is some more for your help!example 2",
 			   "html_body": "<p>here is some more for your help!</p><a href='http://example.com/file2'>example 2</a>"
 			 }
-			]
+			],
+			"next_page": null
 		 }`)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
@@ -52,21 +53,21 @@ func TestGetLinksFromComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidJson(t *testing.T) {
-	_, err := GetLinksFromComments(`{}`)
+	_, _, err := GetLinksFromComments(`{"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{}' failed, missing 'comments' field"
+	expectedErr := "parsing json data '{\"next_page\": null}' failed, missing 'comments' field"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetLinksFromCommentsIsMissingComments(t *testing.T) {
-	_, err := GetLinksFromComments(``)
+	_, _, err := GetLinksFromComments(``)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
@@ -80,8 +81,9 @@ func TestGetLinksFromCommentsIsMissingComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidCommentsField(t *testing.T) {
-	_, err := GetLinksFromComments(`{
-		"comments":{}
+	_, _, err := GetLinksFromComments(`{
+		"comments":{},
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -89,14 +91,14 @@ func TestGetLinksFromCommentsHasInvalidCommentsField(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\":{}\n\t}' failed for 'comments', error was 'value doesn't contain array; it contains object'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\":{},\n\t\t\"next_page\": null\n\t}' failed for 'comments', error was 'value doesn't contain array; it contains object'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
-	_, err := GetLinksFromComments(`{
+	_, _, err := GetLinksFromComments(`{
 		"comments": [
 			{
 				"html_body": "<p>hello</p>",
@@ -105,7 +107,8 @@ func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
 			{ 
 				"html_body": "<p>test</p>"
 			}
-		]
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -119,7 +122,7 @@ func TestGetLinksFromCommentsIsMissingPlainBodyInComments(t *testing.T) {
 	}
 }
 func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
-	_, err := GetLinksFromComments(`{
+	_, _, err := GetLinksFromComments(`{
 		"comments": [
 			{
 				"html_body": "<p>hello</p>",
@@ -128,7 +131,8 @@ func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
 			{ 
 				"plain_body": "test"
 			}
-		]
+			],
+			"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -143,7 +147,7 @@ func TestGetLinksFromCommentsIsMissingHTMLBodyInComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
-	links, err := GetLinksFromComments(`{
+	links, _, err := GetLinksFromComments(`{
 		"comments": [
 		  {
 			"attachments": [],
@@ -155,7 +159,8 @@ func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
 		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
-	   ]
+	   ],
+	   "next_page": null
 	}`)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
@@ -166,7 +171,7 @@ func TestGetLinksFromCommentsHasNoLinks(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"attachments": [],
@@ -178,7 +183,8 @@ func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
 		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
-	   ]
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -193,63 +199,63 @@ func TestGetAttachmentsFromCommentHaveNoID(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentHaveWrongIDType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": "1"}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": "1"}],"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\"comments\": [{\"id\": \"1\"}]}' failed for ''id' field at comments index 0', error was 'value doesn't contain number; it contains string'"
+	expectedErr := "parsing json data '{\"comments\": [{\"id\": \"1\"}],\"next_page\": null}' failed for ''id' field at comments index 0', error was 'value doesn't contain number; it contains string'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentHaveNoCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1}],"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1}]}' missing field 'created_at' in 'in comment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1}],\"next_page\": null}' missing field 'created_at' in 'in comment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentHaveBlankCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":""}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":""}],"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1,\"created_at\":\"\"}]}' failed for ''created_at' field a comments index 0', error was 'parsing time \"\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"\" as \"2006\"'"
+	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1,\"created_at\":\"\"}],\"next_page\": null}' failed for ''created_at' field a comments index 0', error was 'parsing time \"\" as \"2006-01-02T15:04:05Z07:00\": cannot parse \"\" as \"2006\"'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentHaveInvalidCreatedAt(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":[]}]}`)
+	_, _, err := GetAttachmentsFromComments(`{"comments": [{"id": 1,"created_at":[]}],"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1,\"created_at\":[]}]}' failed for ''created_at' field a comments index 0', error was 'value doesn't contain string; it contains array'"
+	expectedErr := "parsing json data '{\"comments\": [{\"id\": 1,\"created_at\":[]}],\"next_page\": null}' failed for ''created_at' field a comments index 0', error was 'value doesn't contain string; it contains array'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
-	attachements, err := GetAttachmentsFromComments(`{
+	attachements, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -265,7 +271,8 @@ func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
 		  "plain_body": "here is some more for your help!",
 		  "html_body": "<p>here is some more for your help!</p>"
 		}
-	   ]
+		],
+		"next_page": null
 	}`)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
@@ -276,7 +283,7 @@ func TestGetAttachmentsFromCommentsHaveNoAttachments(t *testing.T) {
 }
 
 func TestGetAttachmentsFromComments(t *testing.T) {
-	attachments, err := GetAttachmentsFromComments(`{
+	attachments, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -311,7 +318,8 @@ func TestGetAttachmentsFromComments(t *testing.T) {
 			}
 		   ]
 		}
-	   ]
+		],
+		"next_page": null
 	}`)
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
@@ -374,7 +382,7 @@ func TestGetAttachmentsFromComments(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsMissingFileName(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -387,8 +395,9 @@ func TestGetAttachmentsFromCommentsMissingFileName(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -396,14 +405,14 @@ func TestGetAttachmentsFromCommentsMissingFileName(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' missing field 'file_name' in 'in comment 0 in attachment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'file_name' in 'in comment 0 in attachment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsInvalidFileName(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -417,8 +426,9 @@ func TestGetAttachmentsFromCommentsInvalidFileName(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -426,14 +436,14 @@ func TestGetAttachmentsFromCommentsInvalidFileName(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": {},\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' failed for 'file_name field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": {},\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'file_name field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsMissingDeleted(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -446,8 +456,9 @@ func TestGetAttachmentsFromCommentsMissingDeleted(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -455,14 +466,14 @@ func TestGetAttachmentsFromCommentsMissingDeleted(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' missing field 'deleted' in 'in comment 0 in attachment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'deleted' in 'in comment 0 in attachment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsInvalidDelete(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -476,8 +487,9 @@ func TestGetAttachmentsFromCommentsInvalidDelete(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -485,13 +497,13 @@ func TestGetAttachmentsFromCommentsInvalidDelete(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": [],\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' failed for 'deleted field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain bool; it contains array'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": [],\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'deleted field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain bool; it contains array'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 func TestGetAttachmentsFromCommentsMissingContentUrl(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -504,8 +516,9 @@ func TestGetAttachmentsFromCommentsMissingContentUrl(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -513,14 +526,14 @@ func TestGetAttachmentsFromCommentsMissingContentUrl(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' missing field 'content_url' in 'in comment 0 in attachment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'content_url' in 'in comment 0 in attachment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsInvalidContentUrl(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -534,8 +547,9 @@ func TestGetAttachmentsFromCommentsInvalidContentUrl(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -543,14 +557,14 @@ func TestGetAttachmentsFromCommentsInvalidContentUrl(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": {},\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' failed for 'content_url field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": {},\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'content_url field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsMissingContentType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -563,8 +577,9 @@ func TestGetAttachmentsFromCommentsMissingContentType(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -572,14 +587,14 @@ func TestGetAttachmentsFromCommentsMissingContentType(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' missing field 'content_type' in 'in comment 0 in attachment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'content_type' in 'in comment 0 in attachment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsInvalidContentType(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -593,8 +608,9 @@ func TestGetAttachmentsFromCommentsInvalidContentType(t *testing.T) {
 					"size": 999
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -602,13 +618,13 @@ func TestGetAttachmentsFromCommentsInvalidContentType(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": {},\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' failed for 'content_type field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": {},\n\t\t\t\t\t\"size\": 999\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'content_type field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain string; it contains object'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 func TestGetAttachmentsFromCommentsMissingSize(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -621,8 +637,9 @@ func TestGetAttachmentsFromCommentsMissingSize(t *testing.T) {
 					"deleted": false
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -630,14 +647,14 @@ func TestGetAttachmentsFromCommentsMissingSize(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"deleted\": false\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' missing field 'size' in 'in comment 0 in attachment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"false\",\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"deleted\": false\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'size' in 'in comment 0 in attachment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsInvalidSize(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -651,8 +668,9 @@ func TestGetAttachmentsFromCommentsInvalidSize(t *testing.T) {
 					"size": ""
 				}
 			]
-		 }
-		]
+		}
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Fatal("expected error but was nil")
@@ -660,13 +678,13 @@ func TestGetAttachmentsFromCommentsInvalidSize(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": \"\"\n\t\t\t\t}\n\t\t\t]\n\t\t }\n\t\t]\n\t}' failed for 'size field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain number; it contains string'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\",\n\t\t\t\"attachments\": [\n\t\t\t\t{\n\t\t\t\t\t\"file_name\": \"f\",\n\t\t\t\t\t\"deleted\": false,\n\t\t\t\t\t\"content_url\": \"http://test.com?file='test'\",\n\t\t\t\t\t\"content_type\": \"application/text\",\n\t\t\t\t\t\"size\": \"\"\n\t\t\t\t}\n\t\t\t]\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'size field in comment 0 in attachment 0 (base index 0)', error was 'value doesn't contain number; it contains string'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 func TestGetAttachmentsFromCommentsAreMissingAttachmentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -676,7 +694,8 @@ func TestGetAttachmentsFromCommentsAreMissingAttachmentsField(t *testing.T) {
 			"id": 2,
 			"created_at": "2022-01-02T15:04:05Z"
 		}
-	   ]
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -684,14 +703,14 @@ func TestGetAttachmentsFromCommentsAreMissingAttachmentsField(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t },\n\t\t {\n\t\t\t\"id\": 2,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t}\n\t   ]\n\t}' missing field 'attachments' in 'in comment 0 (base index 0)'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t },\n\t\t {\n\t\t\t\"id\": 2,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' missing field 'attachments' in 'in comment 0 (base index 0)'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetAttachmentsFromCommentsHaveInvalidAttachmentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
+	_, _, err := GetAttachmentsFromComments(`{
 		"comments": [
 		  {
 			"id": 1,
@@ -703,7 +722,8 @@ func TestGetAttachmentsFromCommentsHaveInvalidAttachmentsField(t *testing.T) {
 			"attachments": 2,
 			"created_at": "2022-01-02T15:04:05Z"
 		}
-	   ]
+		],
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -711,32 +731,35 @@ func TestGetAttachmentsFromCommentsHaveInvalidAttachmentsField(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"attachments\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t },\n\t\t {\n\t\t\t\"id\": 2,\n\t\t\t\"attachments\": 2,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t}\n\t   ]\n\t}' failed for 'attachments field in comment 0 (base index 0)', error was 'value doesn't contain array; it contains number'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t  {\n\t\t\t\"id\": 1,\n\t\t\t\"attachments\": 1,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t },\n\t\t {\n\t\t\t\"id\": 2,\n\t\t\t\"attachments\": 2,\n\t\t\t\"created_at\": \"2022-01-02T15:04:05Z\"\n\t\t}\n\t\t],\n\t\t\"next_page\": null\n\t}' failed for 'attachments field in comment 0 (base index 0)', error was 'value doesn't contain array; it contains number'"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 func TestGetAttachmentsFromCommentsIsMissingComments(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{}`)
+	_, _, err := GetAttachmentsFromComments(`{"next_page": null}`)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(MissingJSONFieldError{}) {
 		t.Errorf("expected MissingJSONFieldError but was %T", err)
 	}
-	expectedErr := "parsing json data '{}' failed, missing 'comments' field"
+	expectedErr := "parsing json data '{\"next_page\": null}' failed, missing 'comments' field"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
 
 func TestGetLinksFromCommentsHasInvalidJSON(t *testing.T) {
-	_, err := GetAttachmentsFromComments(``)
+	_, pageResult, err := GetAttachmentsFromComments(``)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
+	}
+	if pageResult != nil {
+		t.Errorf("\"next_page\" field should always return nil when the json message body is empty")
 	}
 	expectedErr := "parsing json data '' failed, error was 'cannot parse JSON: cannot parse empty string; unparsed tail: \"\"'"
 	if err.Error() != expectedErr {
@@ -745,8 +768,9 @@ func TestGetLinksFromCommentsHasInvalidJSON(t *testing.T) {
 }
 
 func TestGetAttachmentsFromCommentsHasInvalidCommentsField(t *testing.T) {
-	_, err := GetAttachmentsFromComments(`{
-		"comments":{}
+	_, _, err := GetAttachmentsFromComments(`{
+		"comments":{},
+		"next_page": null
 	}`)
 	if err == nil {
 		t.Error("expected error but was nil")
@@ -754,7 +778,75 @@ func TestGetAttachmentsFromCommentsHasInvalidCommentsField(t *testing.T) {
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	expectedErr := "parsing json data '{\n\t\t\"comments\":{}\n\t}' failed for 'comments', error was 'value doesn't contain array; it contains object'"
+	expectedErr := "parsing json data '{\n\t\t\"comments\":{},\n\t\t\"next_page\": null\n\t}' failed for 'comments', error was 'value doesn't contain array; it contains object'"
+	if err.Error() != expectedErr {
+		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
+	}
+}
+
+func TestMissingPagingField(t *testing.T) {
+	_, pageResult, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			},
+			{ 
+				"plain_body": "test"
+			}
+			],
+			"not_next_page": "https://testing.dremio/foo?page=1"
+		 }`)
+	if err == nil {
+		t.Error("expected error but was nil")
+	}
+	if pageResult != nil {
+		t.Errorf("expected null for \"next_page\" but was %v", pageResult)
+	}
+	expectedErr := "parsing json data '{\n\t\t\"comments\": [\n\t\t\t{\n\t\t\t\t\"html_body\": \"<p>hello</p>\",\n\t\t\t\t\"plain_body\": \"hello\"\n\t\t\t},\n\t\t\t{ \n\t\t\t\t\"plain_body\": \"test\"\n\t\t\t}\n\t\t\t],\n\t\t\t\"not_next_page\": \"https://testing.dremio/foo?page=1\"\n\t\t }' failed for 'next_page', error was '<nil>'"
+	if err.Error() != expectedErr {
+		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
+	}
+}
+
+func TestPresentPagingField(t *testing.T) {
+	_, pageResult, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			}
+			],
+			"next_page": "https://testing.zendesk.com/foo?page=1"
+		 }`)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+	expectedLinks := []CommentTextWithLink{
+		{URL: "https://testing.zendesk.com/foo?page=1", Body: "hello"},
+	}
+	if expectedLinks[0].URL != *pageResult {
+		t.Errorf("expected %v but had %v", expectedLinks[0].URL, *pageResult)
+	}
+}
+
+func TestBadPagingField(t *testing.T) {
+	_, pageResult, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			}
+			],
+			"next_page": 999.99
+		 }`)
+	if err == nil {
+		t.Error("expected error but was nil")
+	}
+	if pageResult != nil {
+		t.Errorf("\"next_page\" field should always return nil when a value other than a string is given as a value")
+	}
+	expectedErr := "while trying to get next page: value doesn't contain string; it contains number\n Json data: {\"comments\":[{\"html_body\":\"<p>hello</p>\",\"plain_body\":\"hello\"}],\"next_page\":999.99}"
 	if err.Error() != expectedErr {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
