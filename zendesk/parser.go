@@ -91,7 +91,8 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, *string, erro
 			Location: "next_page",
 		}
 	}
-	if nextPageResult.Type() == fastjson.TypeString {
+	// test for nulls only, values other than a string are handled with the error
+	if nextPageResult.Type() != fastjson.TypeNull {
 		nextPageBytes, err := nextPageResult.StringBytes()
 		if err != nil {
 			return []CommentTextWithLink{}, nil, fmt.Errorf("while trying to get next page: %v\n Json data: %v", err, result)

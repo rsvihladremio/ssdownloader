@@ -751,15 +751,15 @@ func TestGetAttachmentsFromCommentsIsMissingComments(t *testing.T) {
 }
 
 func TestGetLinksFromCommentsHasInvalidJSON(t *testing.T) {
-	_, dump, err := GetAttachmentsFromComments(``)
+	_, pageResult, err := GetAttachmentsFromComments(``)
 	if err == nil {
 		t.Error("expected error but was nil")
 	}
 	if reflect.TypeOf(err) != reflect.TypeOf(ParserErr{}) {
 		t.Errorf("expected ParserErr but was %T", err)
 	}
-	for dump != nil {
-		t.Errorf("This should never happen")
+	if pageResult != nil {
+		t.Errorf("\"next_page\" field should always return nil when the json message body is empty")
 	}
 	expectedErr := "parsing json data '' failed, error was 'cannot parse JSON: cannot parse empty string; unparsed tail: \"\"'"
 	if err.Error() != expectedErr {
@@ -822,13 +822,32 @@ func TestPresentPagingField(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
-	//fmt.Printf("link %v", links)
-	//fmt.Printf("\npage result %v", &pageResult)
-	//pageResultString := *pageResult
 	expectedLinks := []CommentTextWithLink{
 		{URL: "https://testing.zendesk.com/foo?page=1", Body: "hello"},
 	}
 	if expectedLinks[0].URL != *pageResult {
 		t.Errorf("expected %v but had %v", expectedLinks[0].URL, *pageResult)
+	}
+}
+
+func TestBadPagingField(t *testing.T) {
+	_, pageResult, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			}
+			],
+			"next_page": 999.99
+		 }`)
+	if err == nil {
+		t.Error("expected error but was nil")
+	}
+	if pageResult != nil {
+		t.Errorf("\"next_page\" field should always return nil when a value other than a string is given as a value")
+	}
+	expectedErr := "while trying to get next page: value doesn't contain string; it contains number\n Json data: {\"comments\":[{\"html_body\":\"<p>hello</p>\",\"plain_body\":\"hello\"}],\"next_page\":999.99}"
+	if err.Error() != expectedErr {
+		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
