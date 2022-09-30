@@ -39,7 +39,7 @@ func TestRetrievePackgeById(t *testing.T) {
 	// filled out (the sendsafely site had the "files" field incorrectly documented)
 	resp := `[{"id":"oye"}]`
 
-	// setup a responder to the expected status code of 200 and then returning the json data setup abovee
+	// setup a responder to the expected status code of 200 and then returning the json data setup above
 	responder := httpmock.NewStringResponder(200, resp)
 
 	url := URL(zdClient.subDomain, ticketID)
@@ -48,7 +48,7 @@ func TestRetrievePackgeById(t *testing.T) {
 	httpmock.RegisterResponder("GET", url, responder)
 	comments, err := zdClient.GetTicketComentsJSON(ticketID, nil)
 	if err != nil {
-		t.Fatalf("unexpected error retrieving id '%v'", err)
+		t.Fatalf("expected error but was nil")
 	}
 	if comments != resp {
 		t.Errorf("expected %v but received %v", resp, comments)
@@ -64,20 +64,43 @@ func TestCommentReadFail(t *testing.T) {
 	// make sure to reset the mock after the test
 	defer httpmock.DeactivateAndReset()
 	ticketID := "12314"
-	// using the sample json from the sendafely website, with the files field correctly
-	// filled out (the sendsafely site had the "files" field incorrectly documented)
-	resp := `[{"id":"oye"}]`
+	resp := `unable to read ticket comments with error 'Get "http:///blah.com/": no responder found'`
+	responder := httpmock.NewStringResponder(404, resp)
 
-	// setup a responder to the expected status code of 200 and then returning the json data setup abovee
+	url := "http:/blah.com/"
+	// we are expecting a GET request with the exact url specified above, if that exact match happens
+	// the json body setup in the responder will return instead of hitting the remote sendsafely server
+	httpmock.RegisterResponder("GET", url, responder)
+	_, err := zdClient.GetTicketComentsJSON(ticketID, &url)
+	if err == nil {
+		t.Errorf("unexpected error retrieving id '%v'", err)
+	}
+	if err.Error() != resp {
+		t.Errorf("expected %v but received %v", resp, err)
+	}
+}
+
+func TestWithVerbose(t *testing.T) {
+	// since we are using a mock http api we can use any api secret we feel like
+	zdClient := NewClient("myApiKey", "mySecret", "zdsub", true)
+
+	// pass in the resty httpy client that the SendSafelyClient uses so that
+	// httpmock can replace it's transport parameter with a mock one
+	// preventing remote calls from going to SendSafely
+	httpmock.ActivateNonDefault(zdClient.client.GetClient())
+	// make sure to reset the mock after the test
+	defer httpmock.DeactivateAndReset()
+	ticketID := "12314"
+	resp := `[{"id":"oye"}]`
 	responder := httpmock.NewStringResponder(200, resp)
 
 	url := URL(zdClient.subDomain, ticketID)
 	// we are expecting a GET request with the exact url specified above, if that exact match happens
 	// the json body setup in the responder will return instead of hitting the remote sendsafely server
 	httpmock.RegisterResponder("GET", url, responder)
-	comments, err := zdClient.GetTicketComentsJSON(ticketID, &url)
+	comments, err := zdClient.GetTicketComentsJSON(ticketID, nil)
 	if err != nil {
-		t.Fatalf("unexpected error retrieving id '%v'", err)
+		t.Fatalf("expected error but was nil")
 	}
 	if comments != resp {
 		t.Errorf("expected %v but received %v", resp, comments)
