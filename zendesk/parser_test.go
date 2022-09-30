@@ -808,3 +808,27 @@ func TestMissingPagingField(t *testing.T) {
 		t.Errorf("expected error text '%q' but was %q", expectedErr, err.Error())
 	}
 }
+
+func TestPresentPagingField(t *testing.T) {
+	_, pageResult, err := GetLinksFromComments(`{
+		"comments": [
+			{
+				"html_body": "<p>hello</p>",
+				"plain_body": "hello"
+			}
+			],
+			"next_page": "https://testing.zendesk.com/foo?page=1"
+		 }`)
+	if err != nil {
+		t.Errorf("unexpected error %v", err)
+	}
+	//fmt.Printf("link %v", links)
+	//fmt.Printf("\npage result %v", &pageResult)
+	//pageResultString := *pageResult
+	expectedLinks := []CommentTextWithLink{
+		{URL: "https://testing.zendesk.com/foo?page=1", Body: "hello"},
+	}
+	if expectedLinks[0].URL != *pageResult {
+		t.Errorf("expected %v but had %v", expectedLinks[0].URL, *pageResult)
+	}
+}
