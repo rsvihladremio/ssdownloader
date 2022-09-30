@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.2] - 2022-09-30
+### Added
+- support for paging to the zedesk API, tickets longer than 100 comments will now download all attachments
+### Fixed
+- tickets with sendsafely links in comments that did not have a package ID threw a fatal error. Now will log and continue
+
 ## [0.4.1] - 2022-07-19
 ### Added
 - files that fail validation are reported at the end of the output
@@ -83,6 +89,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.2]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.2...v0.3.3
