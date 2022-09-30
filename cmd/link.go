@@ -47,13 +47,13 @@ var linkCmd = &cobra.Command{
 		url := args[0]
 		linkParts, err := link.ParseLink(url)
 		if err != nil {
-			log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
+			log.Printf("unexpected error '%v' reading url '%v'", err, url)
 		}
 		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
 		_, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
-			log.Fatal(err)
+			log.Print(err)
 		}
 
 		if result := InvalidFilesReport(invalidFiles); result != "" {

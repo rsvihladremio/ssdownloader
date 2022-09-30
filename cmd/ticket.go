@@ -110,7 +110,7 @@ var ticketCmd = &cobra.Command{
 			if strings.HasPrefix(url, "https://sendsafely") {
 				linkParts, err := link.ParseLink(url)
 				if err != nil {
-					log.Fatalf("unexpected error '%v' reading url '%v'", err, url)
+					log.Printf("unexpected error '%v' reading url '%v'", err, url)
 				}
 				packageID := linkParts.PackageCode
 				wg.Add(1)
