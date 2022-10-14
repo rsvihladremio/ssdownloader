@@ -54,5 +54,5 @@ zip .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader.exe
 
 Remove-Item -Path Env:\GOOS
 Remove-Item -Path Env:\GOARCH 
-gh release create $VERSION --title $VERSION -d -F changelog.md .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader-linux-amd64.zip 
+gh release create $VERSION --title $VERSION -F changelog.md .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader-linux-amd64.zip 
  

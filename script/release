@@ -15,7 +15,6 @@ echo "Cleaning bin folder…"
 date "+%H:%M:%S"
 ./script/clean
 
-
 echo "Building linux-amd64…"
 date "+%H:%M:%S"
 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
@@ -41,5 +40,5 @@ date "+%H:%M:%S"
 GOOS=windows GOARCH=arm64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
 zip ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader.exe
 
-gh release create $VERSION --title $VERSION -d -F changelog.md ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader-linux-amd64.zip 
+gh release create $VERSION --title $VERSION -F changelog.md ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader-linux-amd64.zip 
  
