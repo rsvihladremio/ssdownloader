@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/jarcoal/httpmock"
+	"github.com/go-resty/resty/v2"
 )
 
 // This is the default happy path test, no errors
@@ -57,26 +58,31 @@ func TestRetrievePackgeById(t *testing.T) {
 
 func TestCommentReadFail(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	zdClient := NewClient("myApiKey", "mySecret", "zdsub", false)
-
+    restClient := resty.New();
+    httpClient := restClient.GetClient();
+    zdClient := &Client{
+        subDomain: "doesnotexistatall",
+		username:  "myApiKey",
+		password:  "mySecret",
+		client:    *restClient,
+		verbose:   true,
+	}
 	// as above prevent remote calls from going to SendSafely
-	httpmock.ActivateNonDefault(zdClient.client.GetClient())
+	httpmock.ActivateNonDefault(httpClient)
 	// make sure to reset the mock after the test
 	defer httpmock.DeactivateAndReset()
 	ticketID := "12314"
-	resp := `unable to read ticket comments with error 'Get "http:///blah.com/": no responder found'`
-	responder := httpmock.NewStringResponder(404, resp)
-
-	url := "http:/blah.com/"
+	resp := `unable to read ticket comments with error 'Get "http:///blah.com": no responder found'`
+	url := "http:/blah.com"
 	// we are expecting a GET request with the exact url specified above, if that exact match happens
 	// the json body setup in the responder will return instead of hitting the remote sendsafely server
-	httpmock.RegisterResponder("GET", url, responder)
+	httpmock.RegisterResponder("GET", url, httpmock.NewStringResponder(404, resp))
 	_, err := zdClient.GetTicketComentsJSON(ticketID, &url)
 	if err == nil {
-		t.Errorf("unexpected error retrieving id '%v'", err)
+		t.Errorf("expected an error retrieving id but was '%v'", err)
 	}
-	if err.Error() != resp {
-		t.Errorf("expected %v but received %v", resp, err)
+	if err != nil && err.Error() != resp {
+		t.Errorf("expected\n%q\nbut received\n%q", resp, err)
 	}
 }
 

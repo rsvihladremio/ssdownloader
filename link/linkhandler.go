@@ -24,7 +24,6 @@ import (
 )
 
 type Parts struct {
-	Thread      string
 	PackageCode string
 	KeyCode     string
 }
@@ -44,14 +43,6 @@ type PackageCodeIsMissingErr struct {
 
 func (p PackageCodeIsMissingErr) Error() string {
 	return fmt.Sprintf("expected to have packageCode in url '%v' but it is not present", p.InputURL)
-}
-
-type ThreadIsMissingErr struct {
-	InputURL string
-}
-
-func (p ThreadIsMissingErr) Error() string {
-	return fmt.Sprintf("expected to have thread in url '%v' but it is not present", p.InputURL)
 }
 
 type QIsMissingErr struct {
@@ -115,9 +106,6 @@ func ParseLink(inputURL string) (Parts, error) {
 	if !query.Has("packageCode") {
 		return Parts{}, PackageCodeIsMissingErr{InputURL: inputURL}
 	}
-	if !query.Has("thread") {
-		return Parts{}, ThreadIsMissingErr{InputURL: inputURL}
-	}
 	// for whatever reason keyCode is stored as a fragment, this is a bit tricker but we know what it starts with
 	// however, this is the most fragile part and if the URL scheme varies a bit this will break badly
 	keyCodeRaw := u.Fragment
@@ -129,7 +117,6 @@ func ParseLink(inputURL string) (Parts, error) {
 	}
 
 	return Parts{
-		Thread:      query.Get("thread"),
 		PackageCode: query.Get("packageCode"),
 		KeyCode:     keyCodeRaw[8:], //throwing away keyCode= and only keeping the rest of the string
 	}, nil
