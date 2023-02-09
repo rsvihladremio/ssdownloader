@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.3] - 2023-02-09
+### Fixed
+- tests fail on some platforms due to inconsistent behavior of restly, worked around by checking for status code of response in zendesk api
+- no longer parsing threadid as all urls do not have it, and we do not need it
+
 ## [0.4.2] - 2022-09-30
 ### Added
 - support for paging to the zedesk API, tickets longer than 100 comments will now download all attachments
@@ -89,6 +94,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/rsvihladremio/ssdownloader/compare/v0.3.3...v0.4.0
