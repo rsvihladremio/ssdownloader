@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//package futils provides file utilities for very common ops
+// package futils provides file utilities for very common ops
 package futils
 
 import (

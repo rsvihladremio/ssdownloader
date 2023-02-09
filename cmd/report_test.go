@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//cmd package contains all the command line flag configuration
+// cmd package contains all the command line flag configuration
 package cmd
 
 import "testing"

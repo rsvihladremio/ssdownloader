@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
+// sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -160,11 +160,12 @@ func (s *Client) sign(data string) (string, error) {
 // ss-request-timestamp: string
 
 // # Payload
-// {
-//   "checksum": "20ea6189a58d6618164d6b53cbc7b5dbeef2fa9a61186b13a80cf1f620987bc1",
-//   "startSegment": 1,
-//   "endSegment": 25
-// }
+//
+//	{
+//	  "checksum": "20ea6189a58d6618164d6b53cbc7b5dbeef2fa9a61186b13a80cf1f620987bc1",
+//	  "startSegment": 1,
+//	  "endSegment": 25
+//	}
 func (s *Client) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
 	// validating client is set in the first place
 	if s.client == nil {

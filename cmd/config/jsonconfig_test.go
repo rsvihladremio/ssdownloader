@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//config package handles the reading and writing of the app configuration file
+// config package handles the reading and writing of the app configuration file
 package config
 
 import "testing"

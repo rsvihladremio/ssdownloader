@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//zendesk package provides api access to the zendesk rest api
+// zendesk package provides api access to the zendesk rest api
 package zendesk
 
 import (

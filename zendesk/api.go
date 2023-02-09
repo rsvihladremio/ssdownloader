@@ -36,45 +36,45 @@ func URL(subDomain, ticketID string) string {
 // GET /api/v2/tickets/{ticket_id}/comments
 // curl https://{subdomain}.zendesk.com/api/v2/tickets/{ticket_id}/comments.json \
 //
-// {
-// 	"comments": [
-// 	  {
-// 		"attachments": [
-// 		  {
-// 			"content_type": "text/plain",
-// 			"content_url": "https://company.zendesk.com/attachments/crash.log",
-// 			"file_name": "crash.log",
-// 			"id": 498483,
-// 			"size": 2532,
-// 			"thumbnails": []
-// 		  }
-// 		],
-// 		"author_id": 123123,
-// 		"body": "Thanks for your help!",
-// 		"created_at": "2009-07-20T22:55:29Z",
-// 		"id": 1274,
-// 		"metadata": {
-// 		  "system": {
-// 			"client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
-// 			"ip_address": "1.1.1.1",
-// 			"latitude": -37.000000000001,
-// 			"location": "Melbourne, 07, Australia",
-// 			"longitude": 144.0000000000002
-// 		  },
-// 		  "via": {
-// 			"channel": "web",
-// 			"source": {
-// 			  "from": {},
-// 			  "rel": "web_widget",
-// 			  "to": {}
-// 			}
-// 		  }
-// 		},
-// 		"public": true,
-// 		"type": "Comment"
-// 	  }
-// 	]
-//   }
+//	{
+//		"comments": [
+//		  {
+//			"attachments": [
+//			  {
+//				"content_type": "text/plain",
+//				"content_url": "https://company.zendesk.com/attachments/crash.log",
+//				"file_name": "crash.log",
+//				"id": 498483,
+//				"size": 2532,
+//				"thumbnails": []
+//			  }
+//			],
+//			"author_id": 123123,
+//			"body": "Thanks for your help!",
+//			"created_at": "2009-07-20T22:55:29Z",
+//			"id": 1274,
+//			"metadata": {
+//			  "system": {
+//				"client": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36",
+//				"ip_address": "1.1.1.1",
+//				"latitude": -37.000000000001,
+//				"location": "Melbourne, 07, Australia",
+//				"longitude": 144.0000000000002
+//			  },
+//			  "via": {
+//				"channel": "web",
+//				"source": {
+//				  "from": {},
+//				  "rel": "web_widget",
+//				  "to": {}
+//				}
+//			  }
+//			},
+//			"public": true,
+//			"type": "Comment"
+//		  }
+//		]
+//	  }
 func (z *Client) GetTicketComentsJSON(ticketID string, pageURL *string) (string, error) {
 	url := URL(z.subDomain, ticketID)
 	if pageURL != nil && *pageURL != "" {
@@ -90,10 +90,10 @@ func (z *Client) GetTicketComentsJSON(ticketID string, pageURL *string) (string,
 		return "", fmt.Errorf("unable to read ticket comments with error '%v'", err)
 	}
 	rawBody := r.Body()
-    statusCode := r.StatusCode() 
+	statusCode := r.StatusCode()
 	if statusCode > 299 {
 		return "", errors.New(string(rawBody))
-    }
+	}
 	if z.verbose {
 		var prettyJSONBuffer bytes.Buffer
 		if err := json.Indent(&prettyJSONBuffer, rawBody, "=", "\t"); err != nil {

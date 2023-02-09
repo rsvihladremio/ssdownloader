@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//link package handles parsing of sendsafely links so that we can retrieve the identifying information in the query parameters
+// link package handles parsing of sendsafely links so that we can retrieve the identifying information in the query parameters
 package link
 
 import (
@@ -103,21 +103,24 @@ func ParseLink(inputURL string) (Parts, error) {
 	}
 	// search the query parameters for packageCode and thread
 	query := u.Query()
-	if !query.Has("packageCode") {
+	if !(query.Has("packageCode") || query.Has("packagecode")) {
 		return Parts{}, PackageCodeIsMissingErr{InputURL: inputURL}
 	}
 	// for whatever reason keyCode is stored as a fragment, this is a bit tricker but we know what it starts with
 	// however, this is the most fragile part and if the URL scheme varies a bit this will break badly
 	keyCodeRaw := u.Fragment
-	if !strings.HasPrefix(keyCodeRaw, "keyCode=") {
+	if !(strings.HasPrefix(keyCodeRaw, "keyCode=") || strings.HasPrefix(keyCodeRaw, "keycode=")) {
 		return Parts{}, KeyCodeIsMissingErr{
 			InputURL: inputURL,
 			KeyCode:  keyCodeRaw,
 		}
 	}
-
+	pkgCode := query.Get("packageCode")
+	if pkgCode == "" {
+		pkgCode = query.Get("packagecode")
+	}
 	return Parts{
-		PackageCode: query.Get("packageCode"),
+		PackageCode: pkgCode,
 		KeyCode:     keyCodeRaw[8:], //throwing away keyCode= and only keeping the rest of the string
 	}, nil
 }

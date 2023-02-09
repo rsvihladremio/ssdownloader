@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# script/fmt: Run gofmt on the whole tree
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+gofmt -s -w .
+
+

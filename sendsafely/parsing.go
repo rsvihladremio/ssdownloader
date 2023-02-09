@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
+// sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (
@@ -73,57 +73,58 @@ func missingFieldError(fieldName, jsonBody string) error {
 
 // ParsePackage reads a json from here https://bump.sh/doc/sendsafely-rest-api#operation-getpackageinformation
 // which looks like the following
-// {
-//  "packageId": "GVG2-MNZT",
-//  "packageCode": "M0AEMIrTQe9XWRgGDKiKta1pXobmpKwAVafWgXjnBsw",
-//  "serverSecret": "ACbuj9NKTkvjZ71Gc0t5zuU1xvba9XAouA",
-//  "recipients": [
-//    {
-//      "recipientId": "5d504769-78c4-4c0a-b982-945845ea2075",
-//      "email": "recip1@example.com",
-//      "fullName": "External User",
-//      "needsApproval": false,
-//      "recipientCode": "YN0P1G0xbS9mBSwohP9xPJSqwgKXMq4bCI5uTcx1KKM",
-//      "confirmations": {
-//        "ipAddress": "127.0.0.1",
-//        "timestamp": "Dec 12, 2018 2:24:38 PM",
-//        "timeStampStr": "Dec 12, 2018 at 14:24",
-//        "isMessage": true
-//      },
-//      "isPackageOwner": false,
-//      "checkForPublicKeys": false,
-//      "roleName": "VIEWER"
-//    }
-//  ],
-//  "contactGroups": [
-//    {
-//      "id": "string"
-//    }
-//  ],
-//  "files": [
-//    { //NOTE THIS IS NOTHING LIKE WHAT IT RETURNS see SendSafelyFile for the accurate field names and types
-//      "id": "string"
-//    }
-//  ],
-//  "directories": [
-//    {
-//      "id": "string"
-//    }
-//  ],
-//  "approverList": [
-//    {}
-//  ],
-//  "needsApproval": false,
-//  "state": "PACKAGE_STATE_IN_PROGRESS",
-//  "passwordRequired": false,
-//  "life": 10,
-//  "isVDR": false,
-//  "isArchived": false,
-//  "packageSender": "user@companyabc.com",
-//  "packageTimestamp": "Feb 1, 2019 2:07:28 PM",
-//  "rootDirectoryId": "8c3c2184-e73e-4137-be92-e9c5b5661258",
-//  "response": "SUCCESS"
-//}
+//
+//	{
+//	 "packageId": "GVG2-MNZT",
+//	 "packageCode": "M0AEMIrTQe9XWRgGDKiKta1pXobmpKwAVafWgXjnBsw",
+//	 "serverSecret": "ACbuj9NKTkvjZ71Gc0t5zuU1xvba9XAouA",
+//	 "recipients": [
+//	   {
+//	     "recipientId": "5d504769-78c4-4c0a-b982-945845ea2075",
+//	     "email": "recip1@example.com",
+//	     "fullName": "External User",
+//	     "needsApproval": false,
+//	     "recipientCode": "YN0P1G0xbS9mBSwohP9xPJSqwgKXMq4bCI5uTcx1KKM",
+//	     "confirmations": {
+//	       "ipAddress": "127.0.0.1",
+//	       "timestamp": "Dec 12, 2018 2:24:38 PM",
+//	       "timeStampStr": "Dec 12, 2018 at 14:24",
+//	       "isMessage": true
+//	     },
+//	     "isPackageOwner": false,
+//	     "checkForPublicKeys": false,
+//	     "roleName": "VIEWER"
+//	   }
+//	 ],
+//	 "contactGroups": [
+//	   {
+//	     "id": "string"
+//	   }
+//	 ],
+//	 "files": [
+//	   { //NOTE THIS IS NOTHING LIKE WHAT IT RETURNS see SendSafelyFile for the accurate field names and types
+//	     "id": "string"
+//	   }
+//	 ],
+//	 "directories": [
+//	   {
+//	     "id": "string"
+//	   }
+//	 ],
+//	 "approverList": [
+//	   {}
+//	 ],
+//	 "needsApproval": false,
+//	 "state": "PACKAGE_STATE_IN_PROGRESS",
+//	 "passwordRequired": false,
+//	 "life": 10,
+//	 "isVDR": false,
+//	 "isArchived": false,
+//	 "packageSender": "user@companyabc.com",
+//	 "packageTimestamp": "Feb 1, 2019 2:07:28 PM",
+//	 "rootDirectoryId": "8c3c2184-e73e-4137-be92-e9c5b5661258",
+//	 "response": "SUCCESS"
+//	}
 func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package, error) {
 	var ssp Package
 
@@ -277,15 +278,16 @@ const DateFmt = "Jan 2, 2006 3:04:05 PM"
 
 // ParseDownloadUrls reads the json response provided here https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
 // here is an example
-// {
-//   "downloadUrls": [
-//     {
-//       "part": 1,
-//       "url": "https://sendsafely-dual-region-us.s3-accelerate.amazonaws.com/commercial/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE/11111111-2222-3333-4444-555555555555-1?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1554862678&Signature=OTP5Z0DIutXKbRRT4NwmxQG9jFk%3D"
-//     }
-//   ],
-//   "response": "SUCCESS"
-// }
+//
+//	{
+//	  "downloadUrls": [
+//	    {
+//	      "part": 1,
+//	      "url": "https://sendsafely-dual-region-us.s3-accelerate.amazonaws.com/commercial/AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE/11111111-2222-3333-4444-555555555555-1?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE&Expires=1554862678&Signature=OTP5Z0DIutXKbRRT4NwmxQG9jFk%3D"
+//	    }
+//	  ],
+//	  "response": "SUCCESS"
+//	}
 func (s *APIParser) ParseDownloadUrls(downloadJSON string) ([]DownloadURL, error) {
 	var response []DownloadURL
 	v, err := s.jsonParser.Parse(downloadJSON)

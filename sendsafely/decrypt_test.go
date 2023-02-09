@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
+// sendsafely package decrypts files, combines file parts into whole files, and handles api access to the sendsafely rest api
 package sendsafely
 
 import (

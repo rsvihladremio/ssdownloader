@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//downloader package provides http download capability
+// downloader package provides http download capability
 package downloader
 
 import (

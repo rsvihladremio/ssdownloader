@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//ssdownloader has implemented the zendesk and sendsafely rest APIs
+// ssdownloader has implemented the zendesk and sendsafely rest APIs
 // to provide support for search for sendsafely links in tickets and downloading
 // all files found.
 // other features include

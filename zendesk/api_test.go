@@ -14,14 +14,14 @@
    limitations under the License.
 */
 
-//zendesk package provides api access to the zendesk rest api
+// zendesk package provides api access to the zendesk rest api
 package zendesk
 
 import (
 	"testing"
 
-	"github.com/jarcoal/httpmock"
 	"github.com/go-resty/resty/v2"
+	"github.com/jarcoal/httpmock"
 )
 
 // This is the default happy path test, no errors
@@ -58,10 +58,10 @@ func TestRetrievePackgeById(t *testing.T) {
 
 func TestCommentReadFail(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-    restClient := resty.New();
-    httpClient := restClient.GetClient();
-    zdClient := &Client{
-        subDomain: "doesnotexistatall",
+	restClient := resty.New()
+	httpClient := restClient.GetClient()
+	zdClient := &Client{
+		subDomain: "doesnotexistatall",
 		username:  "myApiKey",
 		password:  "mySecret",
 		client:    *restClient,

@@ -14,7 +14,7 @@
    limitations under the License.
 */
 
-//zendesk package provides api access to the zendesk rest apis
+// zendesk package provides api access to the zendesk rest apis
 package zendesk
 
 import (
@@ -28,14 +28,14 @@ import (
 	"golang.org/x/net/html"
 )
 
-//ParserErr provides location, raw json data parsed and nested error
+// ParserErr provides location, raw json data parsed and nested error
 type ParserErr struct {
 	Err      error
 	JSONData string
 	Location string
 }
 
-//Error provides location if one is present otherwise it will omit that text
+// Error provides location if one is present otherwise it will omit that text
 func (p ParserErr) Error() string {
 	if p.Location == "" {
 		// with no location we can return a shorter cleaner message
@@ -44,14 +44,14 @@ func (p ParserErr) Error() string {
 	return fmt.Sprintf("parsing json data '%v' failed for '%v', error was '%v'", p.JSONData, p.Location, p.Err)
 }
 
-//MissingJSONFieldError provides location, field name and raw json data parsed
+// MissingJSONFieldError provides location, field name and raw json data parsed
 type MissingJSONFieldError struct {
 	FieldName string
 	JSONData  string
 	Location  string
 }
 
-//Error provides location if one is present otherwise it will omit that text
+// Error provides location if one is present otherwise it will omit that text
 func (m MissingJSONFieldError) Error() string {
 	if m.Location == "" {
 		// with no location we can return a shorter cleaner message
@@ -188,20 +188,22 @@ func GetLinksFromComments(jsonData string) ([]CommentTextWithLink, *string, erro
 }
 
 // Attachment maps to
-// 				{
-//					"url": "https://dremio.zendesk.com/api/v2/attachments/1.json",
-//					"id": 1,
-//					"file_name": "test.txt",
-//					"content_url": "https://tester.zendesk.com/attachments/token/abc/?name=test.txt",
-//					"mapped_content_url": "https://test.tester.com/attachments/token/abc/?name=test.txt",
-//					"content_type": "text/plain",
-//					"size": 1111,
-//					"width": null,
-//					"height": null,
-//					"inline": false,
-//					"deleted": false,
-//					"thumbnails": []
-//				}
+//
+//	{
+//		"url": "https://dremio.zendesk.com/api/v2/attachments/1.json",
+//		"id": 1,
+//		"file_name": "test.txt",
+//		"content_url": "https://tester.zendesk.com/attachments/token/abc/?name=test.txt",
+//		"mapped_content_url": "https://test.tester.com/attachments/token/abc/?name=test.txt",
+//		"content_type": "text/plain",
+//		"size": 1111,
+//		"width": null,
+//		"height": null,
+//		"inline": false,
+//		"deleted": false,
+//		"thumbnails": []
+//	}
+//
 // with additional data from parent comment
 type Attachment struct {
 	ParentCommentDate time.Time // "created_at": "2000-01-01T11:11:07Z",
