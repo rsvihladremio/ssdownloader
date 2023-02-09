@@ -49,11 +49,6 @@ func TestLinkHandlerWithEncodedByGoogleUrlAfterPastedInTerminal(t *testing.T) {
 	if linkParts.PackageCode != expectedPackageCode {
 		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
 	}
-
-	expectedThread := "MYTHREAD"
-	if linkParts.Thread != expectedThread {
-		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
-	}
 }
 func TestLinkHandlerWithEncodedByGoogleUrl(t *testing.T) {
 	url := "https://www.google.com/url?q=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ"
@@ -71,10 +66,6 @@ func TestLinkHandlerWithEncodedByGoogleUrl(t *testing.T) {
 		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
 	}
 
-	expectedThread := "MYTHREAD"
-	if linkParts.Thread != expectedThread {
-		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
-	}
 }
 
 func TestLinkHandler(t *testing.T) {
@@ -93,10 +84,6 @@ func TestLinkHandler(t *testing.T) {
 		t.Errorf("expected package code '%v' but got '%v'", expectedPackageCode, linkParts.PackageCode)
 	}
 
-	expectedThread := "MYTHREAD"
-	if linkParts.Thread != expectedThread {
-		t.Errorf("expected thread '%v' but got '%v'", expectedThread, linkParts.Thread)
-	}
 }
 
 func TestKeyCodeMissing(t *testing.T) {
@@ -136,23 +123,6 @@ func TestPackageCodeMissing(t *testing.T) {
 	}
 }
 
-func TestThreadMissing(t *testing.T) {
-	url := "https://sendsafely.tester.com/receive/?packageCode=MYPKGCODE#keyCode=MYKEYCODE"
-	_, err := ParseLink(url)
-	if err == nil {
-		t.Fatalf("exected error '%v'", err)
-	}
-	if !errors.Is(err, ThreadIsMissingErr{
-		InputURL: url,
-	}) {
-		t.Errorf("expected ThreadIsMissingErr but got %v", err)
-	} else {
-		expectedError := "expected to have thread in url 'https://sendsafely.tester.com/receive/?packageCode=MYPKGCODE#keyCode=MYKEYCODE' but it is not present"
-		if err.Error() != expectedError {
-			t.Errorf("expected error text of '%v' but was '%v'", expectedError, err.Error())
-		}
-	}
-}
 
 func TestInvalidUrlForGoogleURL(t *testing.T) {
 	url := "https://www.google.com/url*$ù%?q=https%3A%2F%2Fsendsafely.tester.com%2Freceive%2F%3Fthread%3DMYTHREAD%26packageCode%3DMYPKGCODE%23keyCode%3DMYKEYCODE&sa=D&ust=11111111&usg=JJJJJJJJJ"

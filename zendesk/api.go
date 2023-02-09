@@ -14,13 +14,14 @@
    limitations under the License.
 */
 
-//zendesk package provides api access to the zendesk rest api
+// zendesk package provides api access to the zendesk rest api
 package zendesk
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -89,6 +90,10 @@ func (z *Client) GetTicketComentsJSON(ticketID string, pageURL *string) (string,
 		return "", fmt.Errorf("unable to read ticket comments with error '%v'", err)
 	}
 	rawBody := r.Body()
+    statusCode := r.StatusCode() 
+	if statusCode > 299 {
+		return "", errors.New(string(rawBody))
+    }
 	if z.verbose {
 		var prettyJSONBuffer bytes.Buffer
 		if err := json.Indent(&prettyJSONBuffer, rawBody, "=", "\t"); err != nil {
