@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f
 	github.com/go-resty/resty/v2 v2.7.0
-	github.com/jarcoal/httpmock v1.2.0
+	github.com/jarcoal/httpmock v1.3.0
 	github.com/panjf2000/ants/v2 v2.5.0
 	github.com/spf13/cobra v1.4.0
 	github.com/valyala/fastjson v1.6.3
