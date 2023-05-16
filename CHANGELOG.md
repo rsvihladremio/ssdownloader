@@ -1,7 +1,14 @@
 # Changelog
+## [0.4.5] - 2023-05-16
+
+### Changed
+
+- version bump for CVEs
 
 ## [0.4.4] - 2023-02-09
+
 ### Changed
+
 - handling of URLs that have lowercase parameters
 
 ## [0.4.3] - 2023-02-09
@@ -98,6 +105,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.5]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.1...v0.4.2
