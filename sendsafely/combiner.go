@@ -127,7 +127,7 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 		if err != nil {
 			return -1, "", fmt.Errorf("unable to read file '%v' due to error '%v'", f, err)
 		}
-		close := func() {
+		closeHandle := func() {
 			err = fileHandle.Close()
 			if err != nil {
 				log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", f, err)
@@ -136,11 +136,11 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 		buf := make([]byte, 8192*1024)
 		bytesWritten, err := io.CopyBuffer(newFileHandle, fileHandle, buf)
 		if err != nil {
-			close()
+			closeHandle()
 			return -1, "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)
 		}
 		totalBytesWritten += bytesWritten
-		close()
+		closeHandle()
 		err = os.Remove(f)
 		if err != nil {
 			log.Printf("WARN unable to remove old file '%v' after copying it's contents to the new file due to error '%v' and it will have to be manually deleted", f, err)
