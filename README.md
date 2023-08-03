@@ -30,7 +30,7 @@ if any of the following methods do not work for you.
 On mac I suggest homebrew:
 
 ```sh
-brew tap rsvihladremio/ssdownloader
+brew tap rsvihladremio/tools
 brew install ssdownloader
 ```
 
