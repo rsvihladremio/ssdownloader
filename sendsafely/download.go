@@ -27,6 +27,7 @@ import (
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
+	"github.com/rsvihladremio/ssdownloader/reporting"
 )
 
 type PartRequests struct {
@@ -80,6 +81,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 
 	for _, f := range p.Files {
 
+		reporting.AddFile()
 		fileName := f.FileName
 		parts := f.Parts
 		fileSize := f.FileSize
@@ -87,13 +89,18 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		fullPath := filepath.Join(outDir, fileName)
 		exists, err := futils.FileExists(fullPath)
 		if err != nil {
+			reporting.AddFailed()
 			slog.Error("unable to check if file exists. Skipping file to prevent overwriting existing one.", "file_name", fullPath, "error_msg", err)
 			continue
 		}
 		if exists {
 			if !FileSizeMatches(fullPath, fileSize) {
+				reporting.AddFailed()
 				invalidFiles = append(invalidFiles, fullPath)
+				slog.Error("file does not match", "file_name", fullPath)
+				continue
 			}
+			reporting.AddSkip()
 			slog.Debug("file already downloaded skipping", "file_name", fullPath)
 			continue
 		}
@@ -116,6 +123,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				end,
 			)
 			if err != nil {
+				reporting.AddFailed()
 				slog.Error("while attemping to get the download url we encountered an error, skipping file", "file_name", fileName, "error_msg", err)
 				continue
 			}
@@ -130,12 +138,14 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				downloadLoc := filepath.Join(outDir, tmpName)
 				err = d.DownloadFile(downloadLoc, downloadURL)
 				if err != nil {
+					reporting.AddFailed()
 					slog.Debug("unable to download file", "file_name", downloadLoc, "error_msg", err)
 					continue
 				}
 				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
 				fileNames = append(fileNames, newFileName)
 				if err != nil {
+					reporting.AddFailed()
 					failedFiles = append(failedFiles, newFileName)
 					slog.Debug("unable to decrypt file", "file_name", downloadLoc, "error_msg", err)
 					continue
@@ -143,26 +153,30 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				slog.Debug("file decrypted", "file_name", newFileName)
 			}
 			if len(failedFiles) > 0 {
+				reporting.AddFailed()
 				slog.Error("there were failed downloads of parts of the file skipping", "failed_file_parts_count", len(failedFiles), "file_name", fileName)
 				continue
 			}
 		}
 		written, newFile, err := CombineFiles(fileNames, verbose)
 		if err != nil {
-			slog.Error("unable to combine downloaded parts", "file_name", fileName, "error_msg", err)
+			reporting.AddFailed()
+			return "", invalidFiles, fmt.Errorf("unable to combine downloaded parts for file %v: %v", fileName, err)
 		} else {
 			fmt.Print(".")
-			slog.Debug("file is complete", "file_name", newFile, "file_size", human(written), "file_size_in_bytes", written)
+			slog.Debug("file is complete", "file_name", newFile, "file_size", Human(written), "file_size_in_bytes", written)
 		}
 		if !FileSizeMatches(fullPath, fileSize) {
-			invalidFiles = append(invalidFiles, fullPath)
+			reporting.AddFailed()
+			return "", invalidFiles, fmt.Errorf("files sizes are out of sync for file %v: %v", fileName, err)
 		}
+		reporting.AddBytes(fileSize)
 
 	}
 	return outDir, invalidFiles, nil
 }
 
-func human(bytes int64) string {
+func Human(bytes int64) string {
 	if bytes > 1024*1024*1024 {
 		return fmt.Sprintf("%.2f gb", float64(bytes)/(1024.0*1024.0*1024.0))
 	} else if bytes > 1024*1024 {

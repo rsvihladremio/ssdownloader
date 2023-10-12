@@ -30,6 +30,7 @@ import (
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
 	"github.com/rsvihladremio/ssdownloader/link"
+	"github.com/rsvihladremio/ssdownloader/reporting"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
 	"github.com/rsvihladremio/ssdownloader/zendesk"
 	"github.com/spf13/cobra"
@@ -164,11 +165,14 @@ var ticketCmd = &cobra.Command{
 		if result := InvalidFilesReport(allInvalidFiles); result != "" {
 			fmt.Println(result)
 		}
+		fmt.Println(Report(reporting.GetTotalFiles(), reporting.GetTotalSkipped(), reporting.GetTotalFailed(), reporting.GetTotalBytes(), reporting.GetMaxFileSizeBytes()))
 	},
 }
 
 func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) (invalidFiles []string, err error) {
+	reporting.AddFile()
 	if a.Deleted {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
 	}
 	commentDir := fmt.Sprintf("%v_%v", a.ParentCommentDate.Format("2006-01-02T150405Z0700"), a.ParentCommentID)
@@ -176,12 +180,15 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 	newFileName := filepath.Join(downloadDir, a.FileName)
 	exists, err := futils.FileExists(newFileName)
 	if err != nil {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("unable to see if there is an existing file named %v due to error %v, skipping download", newFileName, err)
 	}
 	if exists {
 		if !sendsafely.FileSizeMatches(newFileName, a.Size) {
+			reporting.AddFailed()
 			return invalidFiles, fmt.Errorf("already downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
 		}
+		reporting.AddSkip()
 		slog.Debug("file already downloaded skipping", "file_name", newFileName)
 		return invalidFiles, nil
 	}
@@ -191,14 +198,17 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 		if os.IsNotExist(err) {
 			err = os.MkdirAll(downloadDir, 0700)
 			if err != nil {
+				reporting.AddFailed()
 				return invalidFiles, fmt.Errorf("unable to make dir %v due to error '%v", downloadDir, err)
 			}
 		} else {
+			reporting.AddFailed()
 			return invalidFiles, fmt.Errorf("unable to read dir %v due to error '%v", downloadDir, err)
 		}
 	}
 
 	if err := d.DownloadFile(newFileName, a.ContentURL); err != nil {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
 	}
 	if !sendsafely.FileSizeMatches(newFileName, a.Size) {
@@ -207,8 +217,23 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 	}
 	fmt.Print(".")
 	slog.Debug("attachement download complete", "file_name", newFileName)
+	reporting.AddBytes(a.Size)
 
 	return invalidFiles, nil
+}
+
+func Report(totalFiles int, totalSkipped int, totalFailed int, totalBytes int64, maxBytes int64) string {
+	return fmt.Sprintf(`
+================================
+= ssdownloader summary         =
+================================
+= total files       : %v
+= total succeeded   : %v
+= total skipped     : %v
+= total failed      : %v
+= total bytes       : %v
+= max bytes         : %v
+================================`, totalFiles, totalFiles-(totalSkipped+totalFailed), totalSkipped, totalFailed, sendsafely.Human(totalBytes), sendsafely.Human(maxBytes))
 }
 
 func init() {
