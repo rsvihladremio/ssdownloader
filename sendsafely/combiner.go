@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -64,31 +64,35 @@ func (s SortingErr) Error() string {
 }
 
 func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, newFileName string, err error) {
-	var sortErrors []string
+	sortErrors := make(map[string]bool)
 	sort.SliceStable(fileNames, func(i, j int) bool {
 		one := fileNames[i]
-		two := fileNames[j]
 		suffixOne := strings.Trim(filepath.Ext(one), ".")
-		suffixTwo := strings.Trim(filepath.Ext(two), ".")
 		intOne, err := strconv.Atoi(suffixOne)
 		if err != nil {
 			// using strings so I can easily create one error out of this later
-			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixOne, err))
+			sortErrors[fmt.Sprintf("not able to parse suffix '%v' for file %v with error '%v'", suffixOne, one, err)] = true
 			return false
 		}
+		two := fileNames[j]
+		suffixTwo := strings.Trim(filepath.Ext(two), ".")
 		intTwo, err := strconv.Atoi(suffixTwo)
 		if err != nil {
 			// using strings so I can easily create one error out of this later
-			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixTwo, err))
+			sortErrors[fmt.Sprintf("not able to parse suffix '%v' for file %v with error '%v'", suffixTwo, two, err)] = true
 			return false
 		}
 		return intOne < intTwo
 	})
+	var uniqueErrors []string
+	for k := range sortErrors {
+		uniqueErrors = append(uniqueErrors, k)
+	}
 	if len(sortErrors) > 0 {
-		return -1, "", SortingErr{BaseErr: errors.New(strings.Join(sortErrors, ","))}
+		return -1, "", SortingErr{BaseErr: errors.New(strings.Join(uniqueErrors, ","))}
 	}
 	if verbose {
-		log.Printf("DEBUG: combining the following files: %v\n-", strings.Join(fileNames, "\n-"))
+		slog.Debug("combining files", "files_to_combine", strings.Join(fileNames, ", "))
 	}
 	firstFile := filepath.Clean(fileNames[0])
 	match, err := FindNumberedSuffix(firstFile)
@@ -116,10 +120,10 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 	if err != nil {
 		return -1, "", fmt.Errorf("cannot create file '%v' due to error '%v'", newFileName, err)
 	}
+	// cleanup in case of errors so we don't leak descriptors
 	defer func() {
-		err = newFileHandle.Close()
-		if err != nil {
-			log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", newFileName, err)
+		if err := newFileHandle.Close(); err != nil {
+			slog.Debug("unable to close file, since this is a cleanup operation it is usually safe to ignore", "file_name", newFileName, "error_msg", err)
 		}
 	}()
 	for _, f := range fileNames {
@@ -127,24 +131,30 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 		if err != nil {
 			return -1, "", fmt.Errorf("unable to read file '%v' due to error '%v'", f, err)
 		}
-		closeHandle := func() {
-			err = fileHandle.Close()
-			if err != nil {
-				log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", f, err)
+		// cleanup in case of errors
+		defer func() {
+			if err := fileHandle.Close(); err != nil {
+				slog.Debug("unable to close file handle, since this is a cleanup operation it is usually safe to ignore", "file_name", f, "error_msg", err)
 			}
-		}
+		}()
 		buf := make([]byte, 8192*1024)
 		bytesWritten, err := io.CopyBuffer(newFileHandle, fileHandle, buf)
 		if err != nil {
-			closeHandle()
 			return -1, "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)
 		}
 		totalBytesWritten += bytesWritten
-		closeHandle()
+		if err := fileHandle.Close(); err != nil {
+			return -1, "", fmt.Errorf("unable to close old file %v due to error %v", filepath.Clean(f), err)
+		}
+
 		err = os.Remove(f)
 		if err != nil {
-			log.Printf("WARN unable to remove old file '%v' after copying it's contents to the new file due to error '%v' and it will have to be manually deleted", f, err)
+			slog.Warn("unable to remove old file after copying it's contents to the new file and it will have to be manually deleted", "file_name", f, "error_msg", err)
 		}
 	}
+	if err := newFileHandle.Close(); err != nil {
+		return -1, "", fmt.Errorf("unable to close newfile %v due to error %v, not succesfully written this means", filepath.Clean(newFileName), err)
+	}
+
 	return totalBytesWritten, newFileName, nil
 }

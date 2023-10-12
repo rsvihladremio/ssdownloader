@@ -20,7 +20,7 @@ package downloader
 import (
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,7 +36,7 @@ func (e IllegalBufferSize) Error() string {
 
 func NewGenericDownloader(bufferSizeKB int) *GenericDownloader {
 	if bufferSizeKB < 1 {
-		log.Println("buffer size cannot be smaller than 1 setting to default of 4096")
+		slog.Debug("buffer size cannot be smaller than 1 setting to default of 4096")
 		bufferSizeKB = 4096
 	}
 	return &GenericDownloader{bufferSizeKB: bufferSizeKB}
@@ -60,7 +60,7 @@ func (d *GenericDownloader) DownloadFile(fileName, url string) error {
 	defer func() {
 		err := f.Close()
 		if err != nil {
-			log.Printf("WARN: unable to close file handle for file '%v' due to error '%v'", cleanedFileName, err)
+			slog.Debug("unable to close file handle for file on cleanup. This is safe to ignore usually", "file_name", cleanedFileName, "error_msg", err)
 		}
 	}()
 	// is technically a security violation according to https://securego.io/docs/rules/g107.html
@@ -74,7 +74,7 @@ func (d *GenericDownloader) DownloadFile(fileName, url string) error {
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			log.Printf("WARN: unable to close body handle for url '%v' due to error '%v'", url, err)
+			slog.Warn("unable to close body handle for url", "url", url, "error_msg", err)
 		}
 	}()
 
@@ -84,5 +84,8 @@ func (d *GenericDownloader) DownloadFile(fileName, url string) error {
 		return fmt.Errorf("unable to write to filename '%v' due to error '%v'", cleanedFileName, err)
 	}
 
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("unable to close file %v due to error %v", cleanedFileName, err)
+	}
 	return nil
 }

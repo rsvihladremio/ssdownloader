@@ -19,7 +19,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +30,7 @@ import (
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
 	"github.com/rsvihladremio/ssdownloader/link"
+	"github.com/rsvihladremio/ssdownloader/reporting"
 	"github.com/rsvihladremio/ssdownloader/sendsafely"
 	"github.com/rsvihladremio/ssdownloader/zendesk"
 	"github.com/spf13/cobra"
@@ -60,7 +61,8 @@ var ticketCmd = &cobra.Command{
 			fmt.Println("enter password:")
 			bytePassword, err := term.ReadPassword(int(syscall.Stdin))
 			if err != nil {
-				log.Fatalf("unexpected error reading password '%v'", err)
+				slog.Error("unexpected error reading password", "error_msg", err)
+				os.Exit(1)
 			}
 			password = strings.TrimSpace(string(bytePassword))
 		} else {
@@ -79,18 +81,21 @@ var ticketCmd = &cobra.Command{
 			var commentResults []zendesk.CommentTextWithLink
 			results, err := zendeskAPI.GetTicketComentsJSON(ticketID, nextPage)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("unexpected error getting ticket comments", "error_msg", err)
+				os.Exit(1)
 			}
 			commentResults, nextPage, err = zendesk.GetLinksFromComments(results)
 			if err != nil {
-				log.Fatalf("unable parse comments with error '%v'", err)
+				slog.Error("unable to parse ticket comments", "error_msg", err)
+				os.Exit(1)
 			}
 			// Append to array for comments (short hand with "...")
 			commentLinkTuples = append(commentLinkTuples, commentResults...)
 
 			attResults, _, err := zendesk.GetAttachmentsFromComments(results)
 			if err != nil {
-				log.Fatalf("unable parse attachments with error '%v'", err)
+				slog.Error("unable parse attachments", "error_msg", err)
+				os.Exit(1)
 			}
 			// Append to array for attachments
 			attachments = append(attachments, attResults...)
@@ -98,7 +103,8 @@ var ticketCmd = &cobra.Command{
 
 		p, err := ants.NewPool(DownloadThreads)
 		if err != nil {
-			log.Fatalf("cannot initialize thread pool due to error %v", err)
+			slog.Error("cannot initialize thread pool", "error_msg", err)
+			os.Exit(1)
 		}
 
 		defer p.Release()
@@ -110,27 +116,29 @@ var ticketCmd = &cobra.Command{
 			if strings.HasPrefix(url, "https://sendsafely") {
 				linkParts, err := link.ParseLink(url)
 				if err != nil {
-					log.Printf("unexpected error '%v' reading url '%v'", err, url)
+					slog.Error("unexpected error reading url", "error_msg", err, "url", url)
 				}
 				packageID := linkParts.PackageCode
 				wg.Add(1)
 				err = p.Submit(func() {
 					outDir, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
 					if err != nil {
-						log.Printf("error downloading %v", err)
+						slog.Error("error downloading files from package", "error_msg", err, "package_id", packageID)
 					} else {
 						m.Lock()
 						allInvalidFiles = append(allInvalidFiles, invalidFiles...)
 						m.Unlock()
-						err = os.WriteFile(filepath.Join(outDir, "comment.txt"), []byte(c.Body), 0600)
+						outputFile := filepath.Join(outDir, "comment.txt")
+						err = os.WriteFile(outputFile, []byte(c.Body), 0600)
 						if err != nil {
-							log.Printf("error writing comments %v", err)
+							slog.Error("error writing comment text", "error_msg", err, "comment_url", c.URL, "output_file", outputFile)
 						}
 					}
 					wg.Done()
 				})
 				if err != nil {
-					log.Fatalf("cannot itialize sendsafely download due to error %v", err)
+					slog.Error("cannot initialize sendsafely download", "error_msg", err)
+					os.Exit(1)
 				}
 			}
 		}
@@ -139,7 +147,7 @@ var ticketCmd = &cobra.Command{
 				wg.Add(1)
 				err = p.Submit(func() {
 					if invalidFiles, err := DownloadNonSendSafelyLink(d, a, ticketID); err != nil {
-						log.Printf("WARN: error '%v' processing attachment %v skipping", err, a.FileName)
+						slog.Warn("error processing attachment; skipping", "error_msg", err, "attachement", a.FileName)
 					} else {
 						m.Lock()
 						allInvalidFiles = append(allInvalidFiles, invalidFiles...)
@@ -148,7 +156,8 @@ var ticketCmd = &cobra.Command{
 					wg.Done()
 				})
 				if err != nil {
-					log.Fatalf("cannot itialize sendsafely download due to error %v", err)
+					slog.Error("cannot initialize sendsafely download", "error_msg", err)
+					os.Exit(1)
 				}
 			}
 		}
@@ -156,11 +165,14 @@ var ticketCmd = &cobra.Command{
 		if result := InvalidFilesReport(allInvalidFiles); result != "" {
 			fmt.Println(result)
 		}
+		fmt.Println(Report(reporting.GetTotalFiles(), reporting.GetTotalSkipped(), reporting.GetTotalFailed(), reporting.GetTotalBytes(), reporting.GetMaxFileSizeBytes()))
 	},
 }
 
 func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) (invalidFiles []string, err error) {
+	reporting.AddFile()
 	if a.Deleted {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("attachment '%v' from comment %v created on %v is marked as deleted, skipping", a.FileName, a.ParentCommentID, a.ParentCommentDate)
 	}
 	commentDir := fmt.Sprintf("%v_%v", a.ParentCommentDate.Format("2006-01-02T150405Z0700"), a.ParentCommentID)
@@ -168,38 +180,60 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 	newFileName := filepath.Join(downloadDir, a.FileName)
 	exists, err := futils.FileExists(newFileName)
 	if err != nil {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("unable to see if there is an existing file named %v due to error %v, skipping download", newFileName, err)
 	}
 	if exists {
-		if !sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
+		if !sendsafely.FileSizeMatches(newFileName, a.Size) {
+			reporting.AddFailed()
 			return invalidFiles, fmt.Errorf("already downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
 		}
-		log.Printf("file '%v' already downloaded skipping", newFileName)
+		reporting.AddSkip()
+		slog.Debug("file already downloaded skipping", "file_name", newFileName)
 		return invalidFiles, nil
 	}
-
-	log.Printf("downloading attachment '%v'", newFileName)
+	fmt.Print(".")
+	slog.Debug("downloading attachment", "file_name", newFileName)
 	if _, err := os.Stat(downloadDir); err != nil {
 		if os.IsNotExist(err) {
 			err = os.MkdirAll(downloadDir, 0700)
 			if err != nil {
+				reporting.AddFailed()
 				return invalidFiles, fmt.Errorf("unable to make dir %v due to error '%v", downloadDir, err)
 			}
 		} else {
+			reporting.AddFailed()
 			return invalidFiles, fmt.Errorf("unable to read dir %v due to error '%v", downloadDir, err)
 		}
 	}
 
 	if err := d.DownloadFile(newFileName, a.ContentURL); err != nil {
+		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
 	}
-	if !sendsafely.FileSizeMatches(newFileName, a.Size, Verbose) {
+	if !sendsafely.FileSizeMatches(newFileName, a.Size) {
 		invalidFiles = append(invalidFiles, newFileName)
 		return invalidFiles, fmt.Errorf("newly downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
 	}
-	log.Printf("attachement '%v' is complete", newFileName)
+	fmt.Print(".")
+	slog.Debug("attachement download complete", "file_name", newFileName)
+	reporting.AddBytes(a.Size)
 
 	return invalidFiles, nil
+}
+
+func Report(totalFiles int, totalSkipped int, totalFailed int, totalBytes int64, maxBytes int64) string {
+	return fmt.Sprintf(`
+================================
+= ssdownloader summary         =
+================================
+= total files       : %v
+= total succeeded   : %v
+= total skipped     : %v
+= total failed      : %v
+= total bytes       : %v
+= max bytes         : %v
+================================`, totalFiles, totalFiles-(totalSkipped+totalFailed), totalSkipped, totalFailed, sendsafely.Human(totalBytes), sendsafely.Human(maxBytes))
 }
 
 func init() {

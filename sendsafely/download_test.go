@@ -94,29 +94,29 @@ func TestNoParts(t *testing.T) {
 }
 
 func TestHumanProvidesAccurateAggregation(t *testing.T) {
-	b := human(1024)
+	b := Human(1024)
 	if b != "1024 bytes" {
 		t.Errorf("expected 1023 bytes but was %v", b)
 	}
-	b = human(1025)
+	b = Human(1025)
 	if b != "1.00 kb" {
 		t.Errorf("expected 1.00 kb but was %v", b)
 	}
 
-	b = human(1048576)
+	b = Human(1048576)
 	if b != "1024.00 kb" {
 		t.Errorf("expected 1024.00 kb but was %v", b)
 	}
-	b = human(1048577)
+	b = Human(1048577)
 	if b != "1.00 mb" {
 		t.Errorf("expected 1.00 mb but was %v", b)
 	}
 
-	b = human(1048576 * 1024)
+	b = Human(1048576 * 1024)
 	if b != "1024.00 mb" {
 		t.Errorf("expected 1024.00 kb but was %v", b)
 	}
-	b = human(1048577 * 1024)
+	b = Human(1048577 * 1024)
 	if b != "1.00 gb" {
 		t.Errorf("expected 1.00 mb but was %v", b)
 	}

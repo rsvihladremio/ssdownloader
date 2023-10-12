@@ -20,13 +20,14 @@ package sendsafely
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
+	"github.com/rsvihladremio/ssdownloader/reporting"
 )
 
 type PartRequests struct {
@@ -34,18 +35,14 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-func FileSizeMatches(fileName string, fileSize int64, verbose bool) bool {
+func FileSizeMatches(fileName string, fileSize int64) bool {
 	fi, err := os.Stat(fileName)
 	if err != nil {
-		if verbose {
-			log.Printf("DEBUG: unable to check file size for %v due to error %v", fileName, err)
-		}
+		slog.Debug("unable to check file size", "file_name", fileName, "error_msg", err)
 		return false
 	}
 
-	if verbose {
-		log.Printf("DEBUG: file comparison is %v current versus %v to download", fi.Size(), fileSize)
-	}
+	slog.Debug("file comparison", "current_file_size_bytes", fi.Size(), "file_to_download_bytes", fileSize)
 	return fi.Size() == fileSize
 }
 
@@ -59,7 +56,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 	_, err = os.Stat(c.DownloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		configDir := filepath.Dir(c.DownloadDir)
-		log.Printf("making dir %v", c.DownloadDir)
+		slog.Debug("making download dir since it is not present", "dir", c.DownloadDir)
 		err = os.Mkdir(c.DownloadDir, 0700)
 		if err != nil {
 			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
@@ -75,7 +72,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 	_, err = os.Stat(outDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		configDir := filepath.Dir(outDir)
-		log.Printf("making dir %v", outDir)
+		slog.Debug("making package directory since it does not exist", "dir", outDir)
 		err = os.MkdirAll(outDir, 0700)
 		if err != nil {
 			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
@@ -84,6 +81,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 
 	for _, f := range p.Files {
 
+		reporting.AddFile()
 		fileName := f.FileName
 		parts := f.Parts
 		fileSize := f.FileSize
@@ -91,20 +89,24 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		fullPath := filepath.Join(outDir, fileName)
 		exists, err := futils.FileExists(fullPath)
 		if err != nil {
-			log.Printf("unable to check if file %v exists due to error %v. Skipping file to prevent overwriting existing one.", fullPath, err)
+			reporting.AddFailed()
+			slog.Error("unable to check if file exists. Skipping file to prevent overwriting existing one.", "file_name", fullPath, "error_msg", err)
 			continue
 		}
 		if exists {
-			if !FileSizeMatches(fullPath, fileSize, verbose) {
+			if !FileSizeMatches(fullPath, fileSize) {
+				reporting.AddFailed()
 				invalidFiles = append(invalidFiles, fullPath)
+				slog.Error("file does not match", "file_name", fullPath)
+				continue
 			}
-			log.Printf("file %v already downloaded skipping", fullPath)
+			reporting.AddSkip()
+			slog.Debug("file already downloaded skipping", "file_name", fullPath)
 			continue
 		}
-		if verbose {
-			log.Printf("file %v has %v parts and a total file size of %v", fileName, parts, fileSize)
-		}
-		log.Printf("downloading %v", fullPath)
+		slog.Debug("reported file information from sendsafely", "file_name", fileName, "number_parts", parts, "file_size_in_bytes", fileSize)
+		fmt.Print(".")
+		slog.Debug("downloading", "file_name", fullPath)
 
 		var fileNames []string
 		var failedFiles []string
@@ -121,7 +123,8 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				end,
 			)
 			if err != nil {
-				log.Printf("unable to download file '%v' due to error '%v' while attemping to get the download url, skipping file", fileName, err)
+				reporting.AddFailed()
+				slog.Error("while attemping to get the download url we encountered an error, skipping file", "file_name", fileName, "error_msg", err)
 				continue
 			}
 			for i := range urls {
@@ -135,40 +138,44 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				downloadLoc := filepath.Join(outDir, tmpName)
 				err = d.DownloadFile(downloadLoc, downloadURL)
 				if err != nil {
-					log.Printf("unable to download file %v due to error '%v'", downloadLoc, err)
+					reporting.AddFailed()
+					slog.Debug("unable to download file", "file_name", downloadLoc, "error_msg", err)
 					continue
 				}
 				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
 				fileNames = append(fileNames, newFileName)
 				if err != nil {
+					reporting.AddFailed()
 					failedFiles = append(failedFiles, newFileName)
-					log.Printf("unable to decrypt file %v due to error '%v'", downloadLoc, err)
+					slog.Debug("unable to decrypt file", "file_name", downloadLoc, "error_msg", err)
 					continue
 				}
-				if verbose {
-					log.Printf("file '%v' is decrypted", newFileName)
-				}
+				slog.Debug("file decrypted", "file_name", newFileName)
 			}
 			if len(failedFiles) > 0 {
-				log.Printf("there were %v failed files therefore not going to bother combining parts for file '%v'", len(failedFiles), fileName)
+				reporting.AddFailed()
+				slog.Error("there were failed downloads of parts of the file skipping", "failed_file_parts_count", len(failedFiles), "file_name", fileName)
 				continue
 			}
 		}
 		written, newFile, err := CombineFiles(fileNames, verbose)
 		if err != nil {
-			log.Printf("unable to combine downloaded parts for fileName '%v' due to error '%v'", fileName, err)
-		} else {
-			log.Printf("file '%v is complete and is %v on disk", newFile, human(written))
+			reporting.AddFailed()
+			return "", invalidFiles, fmt.Errorf("unable to combine downloaded parts for file %v: %v", fileName, err)
 		}
-		if !FileSizeMatches(fullPath, fileSize, verbose) {
-			invalidFiles = append(invalidFiles, fullPath)
+		if !FileSizeMatches(fullPath, fileSize) {
+			reporting.AddFailed()
+			return "", invalidFiles, fmt.Errorf("files sizes are out of sync for file %v: %v", fileName, err)
 		}
+		fmt.Print(".")
+		slog.Debug("file is complete", "file_name", newFile, "file_size", Human(written), "file_size_in_bytes", written)
+		reporting.AddBytes(fileSize)
 
 	}
 	return outDir, invalidFiles, nil
 }
 
-func human(bytes int64) string {
+func Human(bytes int64) string {
 	if bytes > 1024*1024*1024 {
 		return fmt.Sprintf("%.2f gb", float64(bytes)/(1024.0*1024.0*1024.0))
 	} else if bytes > 1024*1024 {

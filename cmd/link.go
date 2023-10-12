@@ -19,7 +19,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -39,21 +40,25 @@ var linkCmd = &cobra.Command{
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if C.SsAPIKey == "" {
-			log.Fatalf("ss-api-key is not set and this is required")
+			slog.Error("ss-api-key is not set and this is required")
+			os.Exit(1)
 		}
 		if C.SsAPISecret == "" {
-			log.Fatalf("ss-api-secret is not set and this is required")
+			slog.Error("ss-api-secret is not set and this is required")
+			os.Exit(1)
 		}
 		url := args[0]
 		linkParts, err := link.ParseLink(url)
 		if err != nil {
-			log.Printf("unexpected error '%v' reading url '%v'", err, url)
+			slog.Error("unexpected error reading url", "url", url, "error_msg", err)
+			os.Exit(1)
 		}
 		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
 		_, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
 		if err != nil {
-			log.Print(err)
+			slog.Error("unexpected error downloading files", "error_msg", err)
+			os.Exit(1)
 		}
 
 		if result := InvalidFilesReport(invalidFiles); result != "" {
