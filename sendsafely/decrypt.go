@@ -87,7 +87,7 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 		//verify we got to the close since we may have errored out trying to copy
 		err = encryptedIO.Close()
 		if err != nil {
-			slog.Debug("encrypted io handler for file failed to close", "file_name", cleanedFilePart, "error_msg", err)
+			slog.Debug("encrypted io handler for file failed to close, but this is safe to ignore on a cleanup operation", "file_name", cleanedFilePart, "error_msg", err)
 		}
 	}()
 

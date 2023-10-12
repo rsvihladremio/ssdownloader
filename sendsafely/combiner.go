@@ -122,8 +122,7 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 	}
 	// cleanup in case of errors so we don't leak descriptors
 	defer func() {
-		err = newFileHandle.Close()
-		if err != nil {
+		if err := newFileHandle.Close(); err != nil {
 			slog.Debug("unable to close file, since this is a cleanup operation it is usually safe to ignore", "file_name", newFileName, "error_msg", err)
 		}
 	}()
@@ -134,9 +133,8 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 		}
 		// cleanup in case of errors
 		defer func() {
-			err = fileHandle.Close()
-			if err != nil {
-				slog.Debug("unable to close file handle, since this is a cleanpu operation it is usually safe to ignore", "file_name", f, "error_msg", err)
+			if err := fileHandle.Close(); err != nil {
+				slog.Debug("unable to close file handle, since this is a cleanup operation it is usually safe to ignore", "file_name", f, "error_msg", err)
 			}
 		}()
 		buf := make([]byte, 8192*1024)
@@ -145,10 +143,6 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 			return -1, "", fmt.Errorf("unable to copy file '%v' to file '%v' due to error '%v'", f, newFileName, err)
 		}
 		totalBytesWritten += bytesWritten
-		if err := newFileHandle.Close(); err != nil {
-			return -1, "", fmt.Errorf("unable to close newfile %v due to error %v, not succesfully written this means", filepath.Clean(newFileName), err)
-		}
-
 		if err := fileHandle.Close(); err != nil {
 			return -1, "", fmt.Errorf("unable to close old file %v due to error %v", filepath.Clean(f), err)
 		}
@@ -158,5 +152,9 @@ func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, ne
 			slog.Warn("unable to remove old file after copying it's contents to the new file and it will have to be manually deleted", "file_name", f, "error_msg", err)
 		}
 	}
+	if err := newFileHandle.Close(); err != nil {
+		return -1, "", fmt.Errorf("unable to close newfile %v due to error %v, not succesfully written this means", filepath.Clean(newFileName), err)
+	}
+
 	return totalBytesWritten, newFileName, nil
 }
