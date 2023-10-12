@@ -64,28 +64,32 @@ func (s SortingErr) Error() string {
 }
 
 func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, newFileName string, err error) {
-	var sortErrors []string
+	sortErrors := make(map[string]bool)
 	sort.SliceStable(fileNames, func(i, j int) bool {
 		one := fileNames[i]
-		two := fileNames[j]
 		suffixOne := strings.Trim(filepath.Ext(one), ".")
-		suffixTwo := strings.Trim(filepath.Ext(two), ".")
 		intOne, err := strconv.Atoi(suffixOne)
 		if err != nil {
 			// using strings so I can easily create one error out of this later
-			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixOne, err))
+			sortErrors[fmt.Sprintf("not able to parse suffix '%v' for file %v with error '%v'", suffixOne, one, err)] = true
 			return false
 		}
+		two := fileNames[j]
+		suffixTwo := strings.Trim(filepath.Ext(two), ".")
 		intTwo, err := strconv.Atoi(suffixTwo)
 		if err != nil {
 			// using strings so I can easily create one error out of this later
-			sortErrors = append(sortErrors, fmt.Sprintf("not able to parse suffix '%v' with error '%v'", suffixTwo, err))
+			sortErrors[fmt.Sprintf("not able to parse suffix '%v' for file %v with error '%v'", suffixTwo, two, err)] = true
 			return false
 		}
 		return intOne < intTwo
 	})
+	var uniqueErrors []string
+	for k := range sortErrors {
+		uniqueErrors = append(uniqueErrors, k)
+	}
 	if len(sortErrors) > 0 {
-		return -1, "", SortingErr{BaseErr: errors.New(strings.Join(sortErrors, ","))}
+		return -1, "", SortingErr{BaseErr: errors.New(strings.Join(uniqueErrors, ","))}
 	}
 	if verbose {
 		slog.Debug("combining files", "files_to_combine", strings.Join(fileNames, ", "))

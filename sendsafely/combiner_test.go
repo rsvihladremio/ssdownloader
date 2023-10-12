@@ -21,12 +21,19 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
+func init() {
+	var programLevel = new(slog.LevelVar) // Info by default
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	slog.SetDefault(slog.New(h))
+	programLevel.Set(slog.LevelDebug)
+}
 func TestFindNumberedSuffix(t *testing.T) {
 	s := "abc.123"
 	match, err := FindNumberedSuffix(s)
@@ -119,6 +126,7 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 	for _, e := range entries {
 		files = append(files, filepath.Join(dirToGenerate, e.Name()))
 	}
+	slog.Info("files to combine", "file_list", strings.Join(files, ", "))
 	w, f, err := CombineFiles(files, false)
 	if err != nil {
 		t.Fatalf("unexpected error combining files %v", err)
@@ -127,6 +135,9 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 	contents, err := os.ReadFile(f)
 	if err != nil {
 		t.Fatalf("unexpected error reading combined file with error %v", err)
+	}
+	if err := os.Remove(f); err != nil {
+		t.Fatalf("file not removed cleanup manually: file_name: %v, error: %v", f, err)
 	}
 	l := strings.Split(string(contents), "\n")
 	var lines []string
@@ -211,20 +222,26 @@ func TestCombiningOneBadSuffix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
 	}
+	
 	newFile := filepath.Join(dirToGenerate, "mylog.txt")
+cleanup := func() {
+		if err := os.Remove(newFile); err != nil {
+			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
+		}
+	}
+	defer cleanup()
 	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
 	if err != nil {
 		t.Fatalf("unable to create file %v due to error %v", newFile, err)
 	}
-	defer func() {
-		if err := os.Remove(newFile); err != nil {
-			log.Printf("ignore this, but for debugging purposes we were unable to remove %v due to error %v", newFile, err)
-		}
-	}()
 
 	_, _, err = CombineFiles([]string{newFile}, false)
 	if err == nil {
+		cleanup()
 		t.Fatalf("expected error but did not have one")
+	}
+	if err := os.Remove(newFile); err != nil {
+		t.Fatalf("unable to remove file: file_name: %v, error_msg: %v", newFile, err)
 	}
 	if !errors.Is(err, InvalidSuffixErr{FileName: newFile}) {
 		t.Errorf("expected error to be InvalidSuffixErr but was %v", err)
