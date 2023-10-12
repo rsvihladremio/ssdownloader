@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -97,9 +97,9 @@ func (z *Client) GetTicketComentsJSON(ticketID string, pageURL *string) (string,
 	if z.verbose {
 		var prettyJSONBuffer bytes.Buffer
 		if err := json.Indent(&prettyJSONBuffer, rawBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for ticket %v printing string '%v'", ticketID, string(rawBody))
+			slog.Warn("unable to log debugging json for ticket'", "ticket_id", ticketID, "http_response_body", string(rawBody), "error_msg", err)
 		} else {
-			log.Printf("DEBUG: Ticket %v Comments Contents '%v'", ticketID, prettyJSONBuffer.String())
+			slog.Debug("ticket comments contents", "ticket_id", ticketID, "ticket_json", prettyJSONBuffer.String())
 		}
 	}
 	return string(rawBody), nil

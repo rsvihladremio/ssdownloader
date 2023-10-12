@@ -25,7 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -77,9 +77,7 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 	requestPath := strings.Join([]string{URL, "package", packageID}, "/")
 	// add the required sendsafely headers to the request is accepted and then submit the request
 
-	if s.verbose {
-		log.Printf("retrieving package by Id - apikey: %v, request-ts-header: %v, request-sig-header: %v, urlPath: %v, requestPath: %v", s.ssAPIKey, ts, sig, urlPath, requestPath)
-	}
+	slog.Debug("retrieving package by id", "api_key", s.ssAPIKey, "request_ts_header", ts, "request_sig_header", sig, "url_path", urlPath, "request_path", requestPath)
 	r, err := s.client.R().
 		SetHeader("ss-api-key", s.ssAPIKey).
 		SetHeader("ss-request-timestamp", ts).
@@ -92,9 +90,9 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 	if s.verbose {
 		var prettyJSONBuffer bytes.Buffer
 		if err := json.Indent(&prettyJSONBuffer, rawResponseBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for sendsafely package id %v string '%v'", packageID, string(rawResponseBody))
+			slog.Warn("unable to log debugging json for sendsafely", "package_id", packageID, "body", string(rawResponseBody), "error_msg", err)
 		} else {
-			log.Printf("DEBUG: Package %v Reponse '%v'", packageID, prettyJSONBuffer.String())
+			slog.Debug("package reponse", "package_id", packageID, "http_response_body", prettyJSONBuffer.String())
 		}
 	}
 	return s.parser.ParsePackage(packageID, string(rawResponseBody))
@@ -202,9 +200,9 @@ func (s *Client) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start
 	if s.verbose {
 		var prettyJSONBuffer bytes.Buffer
 		if err := json.Indent(&prettyJSONBuffer, rawResponseBody, "=", "\t"); err != nil {
-			log.Printf("WARN: Unable to log debugging json for sendsafely urls for package id %v string '%v'", p.PackageID, string(rawResponseBody))
+			slog.Warn("unable to log debugging json for sendsafely urls", "package_id", p.PackageID, "http_response_body", string(rawResponseBody), "error_msg", err)
 		} else {
-			log.Printf("DEBUG: Package %v Download Urls '%v'", p.PackageID, prettyJSONBuffer.String())
+			slog.Debug("package download urls", "package_id", p.PackageID, "http_response_body", prettyJSONBuffer.String())
 		}
 	}
 	return s.parser.ParseDownloadUrls(string(rawResponseBody))

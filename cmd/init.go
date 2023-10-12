@@ -19,7 +19,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -53,7 +53,8 @@ ssdownloader init
 			fmt.Print("(sendsafely api key):")
 			n, err := fmt.Scanln(&C.SsAPIKey)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("unable to read input", "error_msg", err)
+				os.Exit(1)
 			}
 			if n == 0 {
 				fmt.Println("sendsafely api key cannot be blank")
@@ -64,7 +65,8 @@ ssdownloader init
 			fmt.Print("(sendsafely api secret):")
 			n, err := fmt.Scanln(&C.SsAPISecret)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("unable to read input", "error_msg", err)
+				os.Exit(1)
 			}
 			if n == 0 {
 				fmt.Println("sendsafely api secret cannot be blank")
@@ -76,7 +78,8 @@ ssdownloader init
 			fmt.Print("(zendesk subdomain):")
 			n, err := fmt.Scanln(&C.ZendeskDomain)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
-				log.Fatal(err)
+				slog.Error("unaable to read input", "error_msg", err)
+				os.Exit(1)
 			}
 			if n == 0 {
 				fmt.Println("zendesk domain was blank, this means `ssdownload ticket` will not function without the --zendesk-domain flag")
@@ -87,7 +90,8 @@ ssdownloader init
 			fmt.Print("(zendesk email):")
 			n, err := fmt.Scanln(&C.ZendeskEmail)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
-				log.Fatal(err)
+				slog.Error("unable to read zendesk email", "error_msg", err)
+				os.Exit(1)
 			}
 			if n == 0 {
 				fmt.Println("zendesk email was blank, this means `ssdownload ticket` will not function without the --zendesk-email flag")
@@ -98,7 +102,8 @@ ssdownloader init
 			fmt.Print("(zendesk token):")
 			n, err := fmt.Scanln(&C.ZendeskToken)
 			if err != nil && !strings.Contains(err.Error(), "unexpected newline") {
-				log.Fatal(err)
+				slog.Error("unable to read zendesk token", "error_msg", err)
+				os.Exit(1)
 			}
 			if n == 0 {
 				fmt.Println("zendesk token was blank, this means `ssdownload ticket` will not function without the --zendesk-token flag")
@@ -111,7 +116,7 @@ ssdownloader init
 			fmt.Printf("unexpected error saving configuration '%v'\n", err)
 			os.Exit(1)
 		}
-		log.Printf("config file %v written\n", newConf)
+		slog.Debug("config file written", "file_name", newConf)
 	},
 }
 

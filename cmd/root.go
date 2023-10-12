@@ -19,7 +19,7 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"runtime"
 
@@ -64,10 +64,15 @@ var Version = "unknownVersion"
 
 var platform = runtime.GOOS
 var arch = runtime.GOARCH
+var programLevel = new(slog.LevelVar) // Info by default
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	//initialize logger with verbosity set
+	if Verbose {
+		programLevel.Set(slog.LevelDebug)
+	}
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
@@ -77,12 +82,15 @@ func Execute() {
 func DefaultDownloadDir() string {
 	userDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatalf("do not have access to home directory, critical error '%v'", err)
+		slog.Error("do not have access to home directory, critical error", "error_msg", err)
+		os.Exit(1)
 	}
 	return fmt.Sprintf("%v/.sendsafely", userDir)
 }
 
 func init() {
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	slog.SetDefault(slog.New(h))
 	fmt.Println(PrintHeader(Version, platform, arch, GitSha))
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose logging")
 	rootCmd.PersistentFlags().StringVar(&C.SsAPIKey, "ss-api-key", "", "the SendSafely API key")
@@ -100,13 +108,15 @@ func init() {
 func initConfig() {
 	fileToLoad, err := config.ReadConfigFile(cfgFile)
 	if err != nil {
-		log.Fatalf("unhandled error loading configuration file '%v' with error '%v'", cfgFile, err)
+		slog.Error("unhandled error loading configuration file", "file_name", cfgFile, "error_msg", err)
+		os.Exit(1)
 	}
 	_, err = os.Stat(fileToLoad)
 	if !os.IsNotExist(err) {
 		err := config.Load(cfgFile, &C)
 		if err != nil {
-			log.Printf("unable to load config file '%v' due to error '%v'", fileToLoad, err)
+			slog.Error("unable to load config file", "file_name", fileToLoad, "error_msg", err)
+			os.Exit(1)
 		}
 	}
 }

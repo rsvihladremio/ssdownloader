@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,11 +84,11 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 	}
 
 	defer func() {
-		err := encryptedIO.Close()
+		//verify we got to the close since we may have errored out trying to copy
+		err = encryptedIO.Close()
 		if err != nil {
-			log.Printf("WARN encrypted io handler for file '%v' failed to close due to '%v'", cleanedFilePart, err)
+			slog.Debug("encrypted io handler for file failed to close", "file_name", cleanedFilePart, "error_msg", err)
 		}
-
 	}()
 
 	messageBuf := bytes.NewBuffer(nil)
@@ -103,17 +103,22 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 		return "", fmt.Errorf("gopenpgp: error in reading password protected message: wrong password or malformed message this is happening during parsing after decryption. %v", err)
 	}
 
+	//now safe to close the file and reclaim some memory
+	err = encryptedIO.Close()
+	if err != nil {
+		return "", fmt.Errorf("encrypted io handler for file '%v' failed to close due to '%v'", cleanedFilePart, err)
+	}
+
 	//remove the "encrypted" suffix
 	newFileName := strings.TrimSuffix(cleanedFilePart, ".encrypted")
 
-	//TODO behind verbose logs
-	//log.Printf("new file name is %v", newFileName)
+	slog.Debug("new name for unencrypted file", "file_name", newFileName, "old_file_name", cleanedFilePart)
 	err = os.WriteFile(newFileName, messageBuf.Bytes(), 0600)
 	if err != nil {
 		return "", fmt.Errorf("unable to write file '%v' due to error '%v'", newFileName, err)
 	}
 	if err := os.Remove(cleanedFilePart); err != nil {
-		log.Printf("WARN unable to delete '%v' due to error '%v' so you will need to manually clean this file up", filePart, err)
+		slog.Warn("unable to delete file so you will need to manually clean this file up", "file_name", filePart, "error_msg", err)
 	}
 	return newFileName, nil
 }
