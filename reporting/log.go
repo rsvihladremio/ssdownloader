@@ -66,7 +66,7 @@ func GetTotalFailed() int {
 
 func AddBytes(i int64) {
 	totalBytesLock.Lock()
-	if i> maxFileSize {
+	if i > maxFileSize {
 		maxFileSize = i
 	}
 	totalBytes += i
