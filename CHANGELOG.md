@@ -1,7 +1,8 @@
 # Changelog
 ## [0.4.6] - 2023-10-12
+### Added
+- added new report and made the logs less chatty by default
 ### Fixed
-
 - version bump for CVEs
 
 ### Changed
