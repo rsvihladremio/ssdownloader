@@ -64,7 +64,7 @@ func TestCommentReadFail(t *testing.T) {
 		subDomain: "doesnotexistatall",
 		username:  "myApiKey",
 		password:  "mySecret",
-		client:    *restClient,
+		client:    restClient,
 		verbose:   true,
 	}
 	// as above prevent remote calls from going to SendSafely
