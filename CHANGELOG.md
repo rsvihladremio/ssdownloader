@@ -1,7 +1,15 @@
 # Changelog
-## [0.4.5] - 2023-05-16
+## [0.4.6] - 2023-10-12
+### Fixed
+
+- version bump for CVEs
 
 ### Changed
+- removed posting of changelog to release notes
+
+## [0.4.5] - 2023-05-16
+
+### Fixed 
 
 - version bump for CVEs
 
@@ -105,6 +113,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.6]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.2...v0.4.3

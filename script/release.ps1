@@ -20,39 +20,39 @@ Get-Date
 $Env:GOOS='linux' 
 $Env:GOARCH='amd64' 
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip .\bin\ssdownloader-linux-amd64.zip .\bin\ssdownloader
+zip -j .\bin\ssdownloader-linux-amd64.zip .\bin\ssdownloader
 Write-Output "Building linux-arm64"
 Get-Date
 $Env:GOOS='linux' 
 $Env:GOARCH='arm64'
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader
+zip -j .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader
 Write-Output "Building darwin-os-x-amd64"
 Get-Date
 $Env:GOOS='darwin' 
 $Env:GOARCH='amd64'
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader
+zip -j .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader
 Write-Output "Building darwin-os-x-arm64"
 Get-Date
 $Env:GOOS='darwin' 
 $Env:GOARCH='arm64'
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader
+zip -j .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader
 Write-Output "Building windows-amd64"
 Get-Date
 $Env:GOOS='windows' 
 $Env:GOARCH='amd64'
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
-zip .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader.exe
+zip -j .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader.exe
 Write-Output "Building windows-arm64"
 Get-Date
 $Env:GOOS='windows' 
 $Env:GOARCH='arm64'
 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
-zip .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader.exe
+zip -j .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader.exe
 
 Remove-Item -Path Env:\GOOS
 Remove-Item -Path Env:\GOARCH 
-gh release create $VERSION --title $VERSION -F changelog.md .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader-linux-amd64.zip 
+gh release create $VERSION --title $VERSION --generate-notes .\bin\ssdownloader-windows-arm64.zip .\bin\ssdownloader-windows-amd64.zip .\bin\ssdownloader-darwin-arm64.zip .\bin\ssdownloader-darwin-amd64.zip .\bin\ssdownloader-linux-arm64.zip .\bin\ssdownloader-linux-amd64.zip 
  
