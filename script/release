@@ -18,27 +18,27 @@ date "+%H:%M:%S"
 echo "Building linux-amd64…"
 date "+%H:%M:%S"
 GOOS=linux GOARCH=amd64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip ./bin/ssdownloader-linux-amd64.zip ./bin/ssdownloader
+zip -j ./bin/ssdownloader-linux-amd64.zip ./bin/ssdownloader
 echo "Building linux-arm64…"
 date "+%H:%M:%S"
 GOOS=linux GOARCH=arm64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader
+zip -j ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader
 echo "Building darwin-os-x-amd64…"
 date "+%H:%M:%S"
 GOOS=darwin GOARCH=amd64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader
+zip -j ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader
 echo "Building darwin-os-x-arm64…"
 date "+%H:%M:%S"
 GOOS=darwin GOARCH=arm64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader
-zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader
+zip -j ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader
 echo "Building windows-amd64…"
 date "+%H:%M:%S"
 GOOS=windows GOARCH=amd64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
-zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader.exe
+zip -j ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader.exe
 echo "Building windows-arm64…"
 date "+%H:%M:%S"
 GOOS=windows GOARCH=arm64 go build -ldflags "$LDFLAGS" -o ./bin/ssdownloader.exe
-zip ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader.exe
+zip -j ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader.exe
 
-gh release create $VERSION --title $VERSION -F CHANGELOG.md ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader-linux-amd64.zip 
+gh release create $VERSION --title $VERSION --generate-notes ./bin/ssdownloader-windows-arm64.zip ./bin/ssdownloader-windows-amd64.zip ./bin/ssdownloader-darwin-arm64.zip ./bin/ssdownloader-darwin-amd64.zip ./bin/ssdownloader-linux-arm64.zip ./bin/ssdownloader-linux-amd64.zip 
  

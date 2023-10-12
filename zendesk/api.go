@@ -106,7 +106,7 @@ func (z *Client) GetTicketComentsJSON(ticketID string, pageURL *string) (string,
 }
 
 type Client struct {
-	client    resty.Client
+	client    *resty.Client
 	username  string
 	password  string
 	subDomain string
@@ -118,7 +118,7 @@ func NewClient(username, password, subDomain string, verbose bool) *Client {
 		subDomain: subDomain,
 		username:  username,
 		password:  password,
-		client:    *resty.New(),
+		client:    resty.New(),
 		verbose:   verbose,
 	}
 }
