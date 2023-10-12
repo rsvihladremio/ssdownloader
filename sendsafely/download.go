@@ -162,14 +162,13 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		if err != nil {
 			reporting.AddFailed()
 			return "", invalidFiles, fmt.Errorf("unable to combine downloaded parts for file %v: %v", fileName, err)
-		} else {
-			fmt.Print(".")
-			slog.Debug("file is complete", "file_name", newFile, "file_size", Human(written), "file_size_in_bytes", written)
 		}
 		if !FileSizeMatches(fullPath, fileSize) {
 			reporting.AddFailed()
 			return "", invalidFiles, fmt.Errorf("files sizes are out of sync for file %v: %v", fileName, err)
 		}
+		fmt.Print(".")
+		slog.Debug("file is complete", "file_name", newFile, "file_size", Human(written), "file_size_in_bytes", written)
 		reporting.AddBytes(fileSize)
 
 	}
