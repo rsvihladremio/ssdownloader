@@ -69,14 +69,11 @@ var programLevel = new(slog.LevelVar) // Info by default
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	//initialize logger with verbosity set
-	if Verbose {
-		programLevel.Set(slog.LevelDebug)
-	}
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
+
 }
 
 func DefaultDownloadDir() string {
@@ -102,6 +99,16 @@ func init() {
 	rootCmd.PersistentFlags().IntVarP(&DownloadBufferSize, "download-buffer-size-kb", "b", 4096, "buffer size in kb to use during downloads")
 	rootCmd.PersistentFlags().IntVarP(&DownloadThreads, "download-threads", "t", 8, "number of threads to use when downloading")
 	initConfig()
+}
+
+// made avaiable to subcommands via this method
+func SetVerbosity() {
+	//initialize logger with verbosity set
+	if Verbose {
+		programLevel.Set(slog.LevelDebug)
+	} else {
+		programLevel.Set(slog.LevelInfo)
+	}
 }
 
 // initConfig reads in config file if present

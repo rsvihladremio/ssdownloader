@@ -39,6 +39,7 @@ var linkCmd = &cobra.Command{
 `,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		SetVerbosity()
 		if C.SsAPIKey == "" {
 			slog.Error("ss-api-key is not set and this is required")
 			os.Exit(1)
