@@ -19,7 +19,3 @@ jobs:
         go-version: 1.21
     - name: CI
       run:  ./script/cibuild
-    - name: Send coverage
-      env:
-        COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: goveralls -coverprofile=covprofile -service=github
