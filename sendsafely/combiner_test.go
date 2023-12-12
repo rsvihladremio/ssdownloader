@@ -153,11 +153,12 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 }
 func TestNoOpCombining(t *testing.T) {
 
-	dirToGenerate := filepath.Join(t.TempDir(), "combining")
+	dirToGenerate := filepath.Join(os.TempDir(), "combining")
 	err := os.MkdirAll(dirToGenerate, 0755)
 	if err != nil {
 		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
 	}
+	defer os.RemoveAll(dirToGenerate)
 	newFile := filepath.Join(dirToGenerate, "mylog.txt.1")
 	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
 	if err != nil {

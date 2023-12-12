@@ -35,15 +35,18 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-func FileSizeMatches(fileName string, fileSize int64) bool {
+// FileSizeCheck this is to help us be aware of future patterns in the sendsafley api, often it will return a different size
+// than it actually encountered in reality, these files are so far always usable so we are just going to log the difference
+func FileSizeCheck(fileName string, fileSize int64) error {
 	fi, err := os.Stat(fileName)
 	if err != nil {
-		slog.Debug("unable to check file size", "file_name", fileName, "error_msg", err)
-		return false
+		return fmt.Errorf("unable to check file size %v", fileName)
 	}
 
-	slog.Debug("file comparison", "current_file_size_bytes", fi.Size(), "file_to_download_bytes", fileSize)
-	return fi.Size() == fileSize
+	if fi.Size() != fileSize {
+		slog.Warn("file size in sendsafely and reality do not match, this is often not a real issue", "current_file_size_bytes", fi.Size(), "file_to_download_bytes", fileSize)
+	}
+	return nil
 }
 
 func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, invalidFiles []string, err error) {
@@ -94,10 +97,10 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 			continue
 		}
 		if exists {
-			if !FileSizeMatches(fullPath, fileSize) {
+			if err := FileSizeCheck(fullPath, fileSize); err != nil {
 				reporting.AddFailed()
 				invalidFiles = append(invalidFiles, fullPath)
-				slog.Error("file does not match", "file_name", fullPath)
+				slog.Error("unable to validate new file", "file_name", fullPath, "err", err)
 				continue
 			}
 			reporting.AddSkip()
@@ -163,9 +166,9 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 			reporting.AddFailed()
 			return "", invalidFiles, fmt.Errorf("unable to combine downloaded parts for file %v: %v", fileName, err)
 		}
-		if !FileSizeMatches(fullPath, fileSize) {
+		if err := FileSizeCheck(fullPath, fileSize); err != nil {
 			reporting.AddFailed()
-			return "", invalidFiles, fmt.Errorf("files sizes are out of sync for file %v: %v", fileName, err)
+			return "", invalidFiles, fmt.Errorf("unable to validate new file: %v: %v", fileName, err)
 		}
 		fmt.Print(".")
 		slog.Debug("file is complete", "file_name", newFile, "file_size", Human(written), "file_size_in_bytes", written)
