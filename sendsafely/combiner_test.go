@@ -151,6 +151,17 @@ func TestCombiningMoreThanTheFirstPart(t *testing.T) {
 		t.Errorf("expected %v and %v to match", w, actualFileSize)
 	}
 }
+
+func TestNoOpCombiningNoFiles(t *testing.T) {
+	_, _, err := CombineFiles([]string{}, false)
+	if err == nil {
+		t.Fatal("expected error combining files")
+	}
+	if err.Error() != "tried to combine 0 files" {
+		t.Errorf("expected error 'tried to combine 0 files' but had %v", err.Error())
+	}
+}
+
 func TestNoOpCombining(t *testing.T) {
 
 	dirToGenerate := filepath.Join(t.TempDir(), "combining")
