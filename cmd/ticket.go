@@ -185,9 +185,9 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 		return invalidFiles, fmt.Errorf("unable to see if there is an existing file named %v due to error %v, skipping download", newFileName, err)
 	}
 	if exists {
-		if !sendsafely.FileSizeMatches(newFileName, a.Size) {
+		if err := sendsafely.FileSizeCheck(newFileName, a.Size); err != nil {
 			reporting.AddFailed()
-			return invalidFiles, fmt.Errorf("already downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
+			return invalidFiles, fmt.Errorf("already downloaded file %v failed verification and is not readable %v", newFileName, a.Size)
 		}
 		reporting.AddSkip()
 		slog.Debug("file already downloaded skipping", "file_name", newFileName)
@@ -212,9 +212,9 @@ func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attach
 		reporting.AddFailed()
 		return invalidFiles, fmt.Errorf("cannot download %v due to error %v, skipping", newFileName, err)
 	}
-	if !sendsafely.FileSizeMatches(newFileName, a.Size) {
+	if err := sendsafely.FileSizeCheck(newFileName, a.Size); err != nil {
 		invalidFiles = append(invalidFiles, newFileName)
-		return invalidFiles, fmt.Errorf("newly downloaded file %v failed verification and did not meet expected size %v", newFileName, a.Size)
+		return invalidFiles, fmt.Errorf("newly downloaded file %v failed verification and is not readable %v", newFileName, a.Size)
 	}
 	fmt.Print(".")
 	slog.Debug("attachement download complete", "file_name", newFileName)

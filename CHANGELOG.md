@@ -1,4 +1,12 @@
 # Changelog
+## [0.4.7] - 2023-12-12
+
+### Fixed
+- combining 0 files no longer leads to a panic
+
+### Changed
+- we now just log when files do not match file size between sendsafely and the file system, this was nearly always a valid file
+
 ## [0.4.6] - 2023-10-12
 ### Added
 - added new report and made the logs less chatty by default
@@ -114,6 +122,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.7]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.3...v0.4.4
