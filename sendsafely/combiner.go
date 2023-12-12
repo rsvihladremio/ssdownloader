@@ -64,6 +64,9 @@ func (s SortingErr) Error() string {
 }
 
 func CombineFiles(fileNames []string, verbose bool) (totalBytesWritten int64, newFileName string, err error) {
+	if len(fileNames) == 0 {
+		return 0, "", fmt.Errorf("tried to combine 0 files")
+	}
 	sortErrors := make(map[string]bool)
 	sort.SliceStable(fileNames, func(i, j int) bool {
 		one := fileNames[i]
