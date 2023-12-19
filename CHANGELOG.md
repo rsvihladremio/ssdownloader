@@ -1,4 +1,18 @@
 # Changelog
+
+## [0.4.9] - 2023-12-19
+
+### Added
+
+- support for filtering out files over a certain size
+- API support for downloading only a single file by file ID
+
+## [0.4.8] - 2023-12-19
+
+### Fixed
+- security fixes
+- some improved copying of variables
+
 ## [0.4.7] - 2023-12-12
 
 ### Fixed
@@ -122,6 +136,8 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.9]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.8...v0.4.9
+[0.4.8]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.7...v0.4.8
 [0.4.7]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.6...v0.4.7
 [0.4.6]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.4...v0.4.5

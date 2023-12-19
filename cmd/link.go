@@ -56,7 +56,17 @@ var linkCmd = &cobra.Command{
 		}
 		packageID := linkParts.PackageCode
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
-		_, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, "packages", Verbose)
+		client := sendsafely.NewClient(C.SsAPIKey, C.SsAPISecret, Verbose)
+		a := sendsafely.DownloadArgs{
+			DownloadDir:      C.DownloadDir,
+			MaxFileSizeByte:  int64(MaxFileSizeGiB) * 1000000000,
+			KeyCode:          linkParts.KeyCode,
+			PackageID:        packageID,
+			SkipList:         []string{},
+			SubDirToDownload: "packages",
+			Verbose:          Verbose,
+		}
+		_, invalidFiles, err := sendsafely.DownloadFilesFromPackage(client, d, a)
 		if err != nil {
 			slog.Error("unexpected error downloading files", "error_msg", err)
 			os.Exit(1)

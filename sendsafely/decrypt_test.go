@@ -62,7 +62,7 @@ func TestGetNowWithNoServerTime(t *testing.T) {
 
 func TestDecrypt(t *testing.T) {
 	originalFile := "testdata/data-for-sendsafely-1-source.csv"
-	password := "serverSecretkeyCode"
+
 	sourceFile, err := os.ReadFile(originalFile)
 	if err != nil {
 		t.Fatalf("unable to copy file %v", err)
@@ -78,6 +78,7 @@ func TestDecrypt(t *testing.T) {
 			log.Printf("safe to ignore this if it fails. unable to remove '%v' due to error '%v'", startingFile, err)
 		}
 	}()
+	password := "serverSecretkeyCode"
 	newFile, err := EncryptFile(startingFile, password)
 	if err != nil {
 		t.Fatalf("error setting up test file due to '%v'", err)

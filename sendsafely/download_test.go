@@ -18,6 +18,11 @@
 package sendsafely
 
 import (
+	"crypto/rand"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -118,6 +123,194 @@ func TestHumanProvidesAccurateAggregation(t *testing.T) {
 	}
 	b = Human(1048577 * 1024)
 	if b != "1.00 gb" {
-		t.Errorf("expected 1.00 mb but was %v", b)
+		t.Errorf("expected 1.00 gb but was %v", b)
+	}
+}
+
+type MockClient struct {
+	RetrieveByPackagePackage           Package
+	RetrieveByPackageErr               error
+	GetDownloadUrlsForFileErr          error
+	GetDownloadUrlsForFileDownloadUrls []DownloadURL
+	PackageIDs                         []string
+	Packages                           []Package
+	FileIds                            []string
+	KeyCodes                           []string
+	Starts                             []int
+	Ends                               []int
+}
+
+func (m *MockClient) RetrievePackageByID(packageID string) (Package, error) {
+	m.PackageIDs = append(m.PackageIDs, packageID)
+	return m.RetrieveByPackagePackage, m.RetrieveByPackageErr
+}
+
+func (m *MockClient) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
+	m.Packages = append(m.Packages, p)
+	m.FileIds = append(m.FileIds, fileID)
+	m.KeyCodes = append(m.KeyCodes, keyCode)
+	m.Starts = append(m.Starts, start)
+	m.Ends = append(m.Ends, end)
+	return m.GetDownloadUrlsForFileDownloadUrls, m.GetDownloadUrlsForFileErr
+}
+
+type MockDownloader struct {
+	FileNames        []string
+	Urls             []string
+	Err              error
+	SubDirToDownload string
+	Pass             string
+	KeyCode          string
+}
+
+func (m *MockDownloader) DownloadFile(fileName, url string) error {
+	//file1 := filepath.Join(m.SubDirToDownload, "00010101T000000_", fileName)
+	tmpFileName := strings.TrimSuffix(fileName, ".encrypted")
+	token := make([]byte, 128)
+	_, err := rand.Read(token)
+	if err != nil {
+		log.Fatalf("unable to readBytes %v", err)
+	}
+	if err := os.WriteFile(tmpFileName, token, 0600); err != nil {
+		log.Fatalf("unable to write %v", err)
+	}
+	_, err = EncryptFile(tmpFileName, m.Pass+m.KeyCode)
+	if err != nil {
+		log.Fatalf("unable to encrypt %v", err)
+	}
+	m.FileNames = append(m.FileNames, fileName)
+	m.Urls = append(m.Urls, url)
+	return m.Err
+}
+
+func TestDownloadFiles(t *testing.T) {
+	expectedKeyCode := "keyCode"
+	expectedPackageID := "packageID1213"
+
+	a := DownloadArgs{
+		DownloadDir:      t.TempDir(),
+		KeyCode:          expectedKeyCode,
+		PackageID:        expectedPackageID,
+		Verbose:          false,
+		SubDirToDownload: filepath.Join(t.TempDir(), "testpackages"),
+		MaxFileSizeByte:  1000000000,
+		SkipList:         []string{},
+	}
+
+	mockClient := &MockClient{}
+	p := Package{}
+	p.ServerSecret = "serverSecretPassword"
+
+	p.Files = []File{
+		{FileID: "fileID1", FileName: "filename1.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID2", FileName: "filename2.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID3", FileName: "filename3.txt", Parts: 1, FileSize: 10},
+	}
+	mockClient.RetrieveByPackagePackage = p
+	downloadURL := DownloadURL{}
+	downloadURL.URL = "http://localhost:1999/filename1.txt"
+	downloadURL.Part = 0
+	mockClient.GetDownloadUrlsForFileDownloadUrls = []DownloadURL{downloadURL}
+	mockDownloader := &MockDownloader{}
+	mockDownloader.Pass = p.ServerSecret
+	mockDownloader.KeyCode = expectedKeyCode
+	mockDownloader.SubDirToDownload = a.SubDirToDownload
+	_, invalidFiles, err := DownloadFilesFromPackage(mockClient, mockDownloader, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(invalidFiles) > 0 {
+		t.Errorf("expected no invalid files but had %v", len(invalidFiles))
+	}
+	if len(mockDownloader.FileNames) != 3 {
+		t.Errorf("expected 3 entries but had %v: output %#v", len(mockDownloader.FileNames), mockDownloader.FileNames)
+	}
+}
+
+func TestSkipFilesOnDownload(t *testing.T) {
+	expectedKeyCode := "keyCode"
+	expectedPackageID := "packageID1213"
+
+	a := DownloadArgs{
+		DownloadDir:      t.TempDir(),
+		KeyCode:          expectedKeyCode,
+		PackageID:        expectedPackageID,
+		Verbose:          false,
+		SubDirToDownload: filepath.Join(t.TempDir(), "testpackages"),
+		MaxFileSizeByte:  1000000000,
+		SkipList:         []string{"fileID1", "fileID2", "fileID3"},
+	}
+
+	mockClient := &MockClient{}
+	p := Package{}
+	p.ServerSecret = "serverSecretPassword"
+
+	p.Files = []File{
+		{FileID: "fileID1", FileName: "filename1.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID2", FileName: "filename2.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID3", FileName: "filename3.txt", Parts: 1, FileSize: 10},
+	}
+	mockClient.RetrieveByPackagePackage = p
+	downloadURL := DownloadURL{}
+	downloadURL.URL = "http://localhost:1999/filename1.txt"
+	downloadURL.Part = 0
+	mockClient.GetDownloadUrlsForFileDownloadUrls = []DownloadURL{downloadURL}
+	mockDownloader := &MockDownloader{}
+	mockDownloader.Pass = p.ServerSecret
+	mockDownloader.KeyCode = expectedKeyCode
+	mockDownloader.SubDirToDownload = a.SubDirToDownload
+	_, invalidFiles, err := DownloadFilesFromPackage(mockClient, mockDownloader, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(invalidFiles) > 0 {
+		t.Errorf("expected no invalid files but had %v", len(invalidFiles))
+	}
+	if len(mockDownloader.FileNames) != 0 {
+		t.Errorf("expected no entries but had %v", len(mockDownloader.FileNames))
+	}
+}
+
+func TestSkipFilesOverLimit(t *testing.T) {
+	expectedKeyCode := "keyCode"
+	expectedPackageID := "packageID1213"
+
+	a := DownloadArgs{
+		DownloadDir:      t.TempDir(),
+		KeyCode:          expectedKeyCode,
+		PackageID:        expectedPackageID,
+		Verbose:          false,
+		SubDirToDownload: filepath.Join(t.TempDir(), "testpackages"),
+		MaxFileSizeByte:  9,
+		SkipList:         []string{},
+	}
+
+	mockClient := &MockClient{}
+	p := Package{}
+	p.ServerSecret = "serverSecretPassword"
+
+	p.Files = []File{
+		{FileID: "fileID1", FileName: "filename1.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID2", FileName: "filename2.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID3", FileName: "filename3.txt", Parts: 1, FileSize: 10},
+	}
+	mockClient.RetrieveByPackagePackage = p
+	downloadURL := DownloadURL{}
+	downloadURL.URL = "http://localhost:1999/filename1.txt"
+	downloadURL.Part = 0
+	mockClient.GetDownloadUrlsForFileDownloadUrls = []DownloadURL{downloadURL}
+	mockDownloader := &MockDownloader{}
+	mockDownloader.Pass = p.ServerSecret
+	mockDownloader.KeyCode = expectedKeyCode
+	mockDownloader.SubDirToDownload = a.SubDirToDownload
+	_, invalidFiles, err := DownloadFilesFromPackage(mockClient, mockDownloader, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(invalidFiles) > 0 {
+		t.Errorf("expected no invalid files but had %v", len(invalidFiles))
+	}
+	if len(mockDownloader.FileNames) != 0 {
+		t.Errorf("expected no entries but had %v", len(mockDownloader.FileNames))
 	}
 }

@@ -35,9 +35,14 @@ import (
 
 const URL = "https://app.sendsafely.com/api/v2.0"
 
+type Client interface {
+	RetrievePackageByID(packageID string) (Package, error)
+	GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error)
+}
+
 // Client uses the SendSafely REST Api to
 // enable automation of SendSafely in Go
-type Client struct {
+type DownloadClient struct {
 	parser      *APIParser
 	client      *resty.Client
 	ssAPIKey    string
@@ -46,10 +51,10 @@ type Client struct {
 }
 
 // NewClient is the preferred way to initialize SendSafelyClient
-func NewClient(ssAPIKey, ssAPISecret string, verbose bool) *Client {
+func NewClient(ssAPIKey, ssAPISecret string, verbose bool) Client {
 	client := resty.New()
 
-	return &Client{
+	return &DownloadClient{
 		ssAPIKey:    ssAPIKey,
 		ssAPISecret: ssAPISecret,
 		client:      client,
@@ -58,7 +63,7 @@ func NewClient(ssAPIKey, ssAPISecret string, verbose bool) *Client {
 	}
 }
 
-func (s *Client) RetrievePackageByID(packageID string) (Package, error) {
+func (s *DownloadClient) RetrievePackageByID(packageID string) (Package, error) {
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
 	ts := now.Format("2006-01-02T15:04:05-0700")
@@ -102,7 +107,7 @@ func (s *Client) RetrievePackageByID(packageID string) (Package, error) {
 // which is a combination of HmacSHA256(API_SECRET, API_KEY + URL_PATH + TIMESTAMP + REQUEST_BODY)
 // TIMESTAMP meaning ss-request-timestamp header. The overall function is documented at the
 // following link https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
-func (s *Client) generateRequestSignature(ts string, urlPath string, requestBody string) (string, error) {
+func (s *DownloadClient) generateRequestSignature(ts string, urlPath string, requestBody string) (string, error) {
 
 	// dump data into the hash, a combination of api_key + urlPath + timestamp + request-body
 	requestData := strings.Join([]string{s.ssAPIKey, urlPath, ts, requestBody}, "")
@@ -112,7 +117,7 @@ func (s *Client) generateRequestSignature(ts string, urlPath string, requestBody
 // GenerateRequestSignature is a utility method to generate the checksum for download requests
 // which is a combination of HmacSHA256(keycode,packageCode))
 // following link https://bump.sh/doc/sendsafely-rest-api#operation-post-package-parameter-file-parameter-download-urls
-func (s *Client) generateChecksum(keyCode, packageCode string) string {
+func (s *DownloadClient) generateChecksum(keyCode, packageCode string) string {
 
 	// use pbkdf2 to encrypt the keycode
 	// from sendsafely docs https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
@@ -134,7 +139,7 @@ func (s *Client) generateChecksum(keyCode, packageCode string) string {
 	return hex.EncodeToString(dk)
 }
 
-func (s *Client) sign(data string) (string, error) {
+func (s *DownloadClient) sign(data string) (string, error) {
 	// using the api secret to setup the hmacsha256
 	h := hmac.New(sha256.New, []byte(s.ssAPISecret))
 
@@ -164,7 +169,7 @@ func (s *Client) sign(data string) (string, error) {
 //	  "startSegment": 1,
 //	  "endSegment": 25
 //	}
-func (s *Client) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
+func (s *DownloadClient) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
 	// validating client is set in the first place
 	if s.client == nil {
 		return []DownloadURL{}, errors.New("client was never initialized. Please use NewSendSafelyClient to initialize SendSafelyClient")

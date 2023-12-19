@@ -112,6 +112,7 @@ var ticketCmd = &cobra.Command{
 		var m sync.Mutex
 		var allInvalidFiles []string
 		var wg sync.WaitGroup
+		client := sendsafely.NewClient(C.SsAPIKey, C.SsAPISecret, Verbose)
 		for _, c := range commentLinkTuples {
 			url := c.URL
 			if strings.HasPrefix(url, "https://sendsafely") {
@@ -122,7 +123,17 @@ var ticketCmd = &cobra.Command{
 				packageID := linkParts.PackageCode
 				wg.Add(1)
 				err = p.Submit(func() {
-					outDir, invalidFiles, err := sendsafely.DownloadFilesFromPackage(d, packageID, linkParts.KeyCode, C, filepath.Join("tickets", ticketID), Verbose)
+					keyCode := linkParts.KeyCode
+					a := sendsafely.DownloadArgs{
+						PackageID:        packageID,
+						KeyCode:          keyCode,
+						SubDirToDownload: filepath.Join("tickets", ticketID),
+						DownloadDir:      C.DownloadDir,
+						MaxFileSizeByte:  int64(MaxFileSizeGiB) * 1000000000,
+						Verbose:          Verbose,
+						SkipList:         []string{},
+					}
+					outDir, invalidFiles, err := sendsafely.DownloadFilesFromPackage(client, d, a)
 					if err != nil {
 						slog.Error("error downloading files from package", "error_msg", err, "package_id", packageID)
 					} else {
@@ -170,7 +181,7 @@ var ticketCmd = &cobra.Command{
 	},
 }
 
-func DownloadNonSendSafelyLink(d *downloader.GenericDownloader, a zendesk.Attachment, ticketID string) (invalidFiles []string, err error) {
+func DownloadNonSendSafelyLink(d downloader.GenericDownloader, a zendesk.Attachment, ticketID string) (invalidFiles []string, err error) {
 	reporting.AddFile()
 	if a.Deleted {
 		reporting.AddFailed()
