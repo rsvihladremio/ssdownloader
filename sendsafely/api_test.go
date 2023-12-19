@@ -105,7 +105,7 @@ func TestRetrievePackgeById(t *testing.T) {
 	// we are expecting a GET request with the exact url specified above, if that exact match happens
 	// the json body setup in the responder will return instead of hitting the remote sendsafely server
 	httpmock.RegisterResponder("GET", url, responder)
-	pkg, err := ssClient.RetrievePackgeByID(packageID)
+	pkg, err := ssClient.RetrievePackageByID(packageID)
 	if err != nil {
 		t.Fatalf("unexpected error retrieving id '%v'", err)
 	}
@@ -134,7 +134,7 @@ func TestRetrievePackageIsMissing(t *testing.T) {
 	responder := httpmock.NewStringResponder(200, resp) //yes they really log 200 when you get an error
 
 	httpmock.RegisterResponder("GET", url, responder)
-	_, err := ssClient.RetrievePackgeByID(packageID)
+	_, err := ssClient.RetrievePackageByID(packageID)
 	if err == nil {
 		t.Fatal("expected error retrieving id")
 	}
@@ -162,7 +162,7 @@ func TestRetrievePackageHasBadAuth(t *testing.T) {
 	responder := httpmock.NewStringResponder(200, resp) //yes they really log 200 when you get an error
 
 	httpmock.RegisterResponder("GET", url, responder)
-	_, err := ssClient.RetrievePackgeByID(packageID)
+	_, err := ssClient.RetrievePackageByID(packageID)
 	if err == nil {
 		t.Fatal("expected error retrieving id")
 	}

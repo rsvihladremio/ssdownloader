@@ -58,7 +58,7 @@ func NewClient(ssAPIKey, ssAPISecret string, verbose bool) *Client {
 	}
 }
 
-func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
+func (s *Client) RetrievePackageByID(packageID string) (Package, error) {
 	now := time.Now()
 	//2019-01-14T22:24:00+0000 as documented in https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
 	ts := now.Format("2006-01-02T15:04:05-0700")
@@ -84,7 +84,7 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 		SetHeader("ss-request-signature", sig).
 		Get(requestPath)
 	if err != nil {
-		return Package{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
+		return Package{}, fmt.Errorf("unexpected error '%v' while retrieving request '%v' error code was '%v'", err, requestPath, r.StatusCode())
 	}
 	rawResponseBody := r.Body()
 	if s.verbose {
@@ -92,7 +92,7 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 		if err := json.Indent(&prettyJSONBuffer, rawResponseBody, "=", "\t"); err != nil {
 			slog.Warn("unable to log debugging json for sendsafely", "package_id", packageID, "body", string(rawResponseBody), "error_msg", err)
 		} else {
-			slog.Debug("package reponse", "package_id", packageID, "http_response_body", prettyJSONBuffer.String())
+			slog.Debug("package response", "package_id", packageID, "http_response_body", prettyJSONBuffer.String())
 		}
 	}
 	return s.parser.ParsePackage(packageID, string(rawResponseBody))
@@ -100,7 +100,7 @@ func (s *Client) RetrievePackgeByID(packageID string) (Package, error) {
 
 // GenerateRequestSignature is a utility method to generate the ss-request-signature header
 // which is a combination of HmacSHA256(API_SECRET, API_KEY + URL_PATH + TIMESTAMP + REQUEST_BODY)
-// TIMESTAMP meaning ss-request-timestamp header. The overal function is documented at the
+// TIMESTAMP meaning ss-request-timestamp header. The overall function is documented at the
 // following link https://sendsafely.zendesk.com/hc/en-us/articles/360027599232-SendSafely-REST-API
 func (s *Client) generateRequestSignature(ts string, urlPath string, requestBody string) (string, error) {
 
@@ -194,7 +194,7 @@ func (s *Client) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start
 		SetBody(body).
 		Post(requestPath)
 	if err != nil {
-		return []DownloadURL{}, fmt.Errorf("unexpeced error '%v' while retrieving request '%v'", err, requestPath)
+		return []DownloadURL{}, fmt.Errorf("unexpected error '%v' while retrieving request '%v'", err, requestPath)
 	}
 	rawResponseBody := r.Body()
 	if s.verbose {
