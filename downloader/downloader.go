@@ -34,19 +34,23 @@ func (e IllegalBufferSize) Error() string {
 	return fmt.Sprintf("buffer size kb was %v and cannot be smaller than 1 please initialize the downloader with the NewGenericDownloader() function to guard against this happending", e.BufferSizeKB)
 }
 
-func NewGenericDownloader(bufferSizeKB int) *GenericDownloader {
+func NewGenericDownloader(bufferSizeKB int) GenericDownloader {
 	if bufferSizeKB < 1 {
 		slog.Debug("buffer size cannot be smaller than 1 setting to default of 4096")
 		bufferSizeKB = 4096
 	}
-	return &GenericDownloader{bufferSizeKB: bufferSizeKB}
+	return &HTTPGenericDownloader{bufferSizeKB: bufferSizeKB}
 }
 
-type GenericDownloader struct {
+type GenericDownloader interface {
+	DownloadFile(fileName, url string) error
+}
+
+type HTTPGenericDownloader struct {
 	bufferSizeKB int
 }
 
-func (d *GenericDownloader) DownloadFile(fileName, url string) error {
+func (d *HTTPGenericDownloader) DownloadFile(fileName, url string) error {
 	if d.bufferSizeKB < 1 {
 		return IllegalBufferSize{BufferSizeKB: d.bufferSizeKB}
 	}

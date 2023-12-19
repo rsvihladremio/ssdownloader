@@ -22,7 +22,7 @@ date "+%H:%M:%S"
 if ! type "golangci-lint" > /dev/null; then
     echo "golaningci-lint not found installing…"
     date "+%H:%M:%S"
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.2
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
 fi
 
 echo "Checking if gosec is installed…"
@@ -31,7 +31,7 @@ date "+%H:%M:%S"
 if ! type "gosec" > /dev/null; then
     echo "gosec not found installing…"
     date "+%H:%M:%S"
-    curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.15.0
+    curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.18.2
 fi
 
 echo "Checking if gh is installed…"

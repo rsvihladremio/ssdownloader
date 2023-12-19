@@ -57,19 +57,19 @@ func TestDownloadFile(t *testing.T) {
 }
 
 func TestInvalidBufferSizeResultsInDefault(t *testing.T) {
-	d := NewGenericDownloader(-1)
+	d := NewGenericDownloader(-1).(*HTTPGenericDownloader)
 	if d.bufferSizeKB != 4096 {
 		t.Errorf("expected 4096 but was %v", d.bufferSizeKB)
 	}
 
-	d = NewGenericDownloader(0)
+	d = NewGenericDownloader(0).(*HTTPGenericDownloader)
 	if d.bufferSizeKB != 4096 {
 		t.Errorf("expected 4096 but was %v", d.bufferSizeKB)
 	}
 }
 
 func TestUsingDefaultBufferSizeResultsInError(t *testing.T) {
-	d := GenericDownloader{}
+	d := HTTPGenericDownloader{}
 	err := d.DownloadFile("", "")
 	if err == nil {
 		t.Error("expected an error but there was none")

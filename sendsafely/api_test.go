@@ -28,7 +28,7 @@ import (
 // This is the default happy path test, no errors
 func TestRetrievePackgeById(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewClient("myApiKey", "mySecret", false)
+	ssClient := NewClient("myApiKey", "mySecret", false).(*DownloadClient)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -119,7 +119,7 @@ func TestRetrievePackgeById(t *testing.T) {
 // the missing package case, this mimics the actual production api as of 2022-07-12
 func TestRetrievePackageIsMissing(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewClient("myApiKey", "mySecret", false)
+	ssClient := NewClient("myApiKey", "mySecret", false).(*DownloadClient)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -147,7 +147,7 @@ func TestRetrievePackageIsMissing(t *testing.T) {
 // the bad auth case, this mimics the actual production api as of 2022-06-20
 func TestRetrievePackageHasBadAuth(t *testing.T) {
 	// since we are using a mock http api we can use any api secret we feel like
-	ssClient := NewClient("myApiKey", "mySecret", false)
+	ssClient := NewClient("myApiKey", "mySecret", false).(*DownloadClient)
 
 	// pass in the resty httpy client that the SendSafelyClient uses so that
 	// httpmock can replace it's transport parameter with a mock one
@@ -176,7 +176,7 @@ func TestRetrievePackageHasBadAuth(t *testing.T) {
 // the main purpose of this test is not to explain the function but to lock in time the behavior
 // so that if there is a breaking change we will catch it
 func TestGenerateSignature(t *testing.T) {
-	ssClient := NewClient("", "", false)
+	ssClient := NewClient("", "", false).(*DownloadClient)
 	ts, err := time.Parse(time.RFC3339, "2022-05-31T18:11:21Z")
 	if err != nil {
 		t.Fatalf("bad test setup since we were not able to use our datetime due to error '%v'", err)
@@ -205,7 +205,7 @@ func TestGenerateSignature(t *testing.T) {
 // the main purpose of this test is not to explain the function but to lock in time the behavior
 // so that if there is a breaking change we will catch it
 func TestGenerateCheckSum(t *testing.T) {
-	ssClient := NewClient("", "", false)
+	ssClient := NewClient("", "", false).(*DownloadClient)
 	checkSum := ssClient.generateChecksum("abc", "def")
 
 	// calculated this, not very meaningful to read, but this will lock the tested behavior and guard against

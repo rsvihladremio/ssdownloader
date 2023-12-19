@@ -24,7 +24,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rsvihladremio/ssdownloader/cmd/config"
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
 	"github.com/rsvihladremio/ssdownloader/reporting"
@@ -49,18 +48,38 @@ func FileSizeCheck(fileName string, fileSize int64) error {
 	return nil
 }
 
-func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, invalidFiles []string, err error) {
-	client := NewClient(c.SsAPIKey, c.SsAPISecret, verbose)
+type DownloadArgs struct {
+	PackageID        string
+	KeyCode          string
+	DownloadDir      string
+	SubDirToDownload string
+	MaxFileSizeByte  int64
+	SkipList         []string
+	Verbose          bool
+}
+
+func DownloadFilesFromPackage(
+	client Client,
+	d downloader.GenericDownloader,
+	a DownloadArgs,
+) (outDir string, invalidFiles []string, err error) {
+	packageID := a.PackageID
+	keyCode := a.KeyCode
+	downloadDir := a.DownloadDir
+	subDirToDownload := a.SubDirToDownload
+	verbose := a.Verbose
+	maxFileSizeBytes := a.MaxFileSizeByte
+	fileIDListToSkip := a.SkipList
 	p, err := client.RetrievePackageByID(packageID)
 	if err != nil {
 		return "", []string{}, err
 	}
 	//making top level download directory if it does not exist
-	_, err = os.Stat(c.DownloadDir)
+	_, err = os.Stat(downloadDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
-		configDir := filepath.Dir(c.DownloadDir)
-		slog.Debug("making download dir since it is not present", "dir", c.DownloadDir)
-		err = os.Mkdir(c.DownloadDir, 0700)
+		configDir := filepath.Dir(downloadDir)
+		slog.Debug("making download dir since it is not present", "dir", downloadDir)
+		err = os.Mkdir(downloadDir, 0700)
 		if err != nil {
 			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
@@ -70,7 +89,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 	//Add timestamp for sorting
 	fullPackageName := fmt.Sprintf("%v_%v", p.PackageTimestamp.Format("20060102T150405"), shortPackageID)
 	//make config directory for this package code if it does not exist
-	outDir = filepath.Join(c.DownloadDir, subDirToDownload, fullPackageName)
+	outDir = filepath.Join(downloadDir, subDirToDownload, fullPackageName)
 
 	_, err = os.Stat(outDir)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
@@ -83,12 +102,29 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 	}
 
 	for _, f := range p.Files {
-
+		fileID := f.FileID
+		var shouldSkip bool
+		for _, skipFile := range fileIDListToSkip {
+			skipFileCopy := skipFile
+			fileIDCopy := fileID
+			if fileIDCopy == skipFileCopy {
+				slog.Info("skipping file id as requested", "fileID", fileIDCopy)
+				shouldSkip = true
+				break
+			}
+		}
+		if shouldSkip {
+			continue
+		}
+		fileSize := f.FileSize
+		if fileSize > maxFileSizeBytes {
+			slog.Info("skipping file ID due to file size", "fileID", fileID, "maxFileSizeBytes", maxFileSizeBytes, "fileSize", fileSize)
+			continue
+		}
 		reporting.AddFile()
 		fileName := f.FileName
 		parts := f.Parts
-		fileSize := f.FileSize
-		fileID := f.FileID
+
 		fullPath := filepath.Join(outDir, fileName)
 		exists, err := futils.FileExists(fullPath)
 		if err != nil {
@@ -147,13 +183,13 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 					continue
 				}
 				newFileName, err := DecryptPart(downloadLoc, p.ServerSecret, keyCode)
-				fileNames = append(fileNames, newFileName)
 				if err != nil {
 					reporting.AddFailed()
 					failedFiles = append(failedFiles, newFileName)
 					slog.Debug("unable to decrypt file", "file_name", downloadLoc, "error_msg", err)
 					continue
 				}
+				fileNames = append(fileNames, newFileName)
 				slog.Debug("file decrypted", "file_name", newFileName)
 			}
 			if len(failedFiles) > 0 {
@@ -161,6 +197,11 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 				slog.Error("there were failed downloads of parts of the file skipping", "failed_file_parts_count", len(failedFiles), "file_name", fileName)
 				continue
 			}
+		}
+		// no files to download everything was skipped
+		if len(fileNames) == 0 && len(invalidFiles) == 0 {
+			reporting.AddSkip()
+			return outDir, invalidFiles, nil
 		}
 		written, newFile, err := CombineFiles(fileNames, verbose)
 		if err != nil {

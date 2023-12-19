@@ -24,11 +24,11 @@ import (
 )
 
 func FileExists(fileName string) (bool, error) {
-	if _, err := os.Stat(fileName); err == nil {
+	_, err := os.Stat(fileName)
+	if err == nil {
 		return true, nil
 	} else if errors.Is(err, os.ErrNotExist) {
 		return false, nil
-	} else {
-		return false, fmt.Errorf("trying to check file %v resulted in error %v", fileName, err)
 	}
+	return false, fmt.Errorf("trying to check file %v resulted in error %v", fileName, err)
 }
