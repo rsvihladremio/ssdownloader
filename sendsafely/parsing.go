@@ -261,7 +261,7 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 	// example "Feb 1, 2019 2:07:28 PM"
 	ts, err := time.Parse(DateFmt, string(rawTimestamp))
 	if err != nil {
-		return Package{}, fmt.Errorf("unparseable packageTimestamp '%v'", err)
+		return Package{}, fmt.Errorf("unparsable packageTimestamp '%v'", err)
 	}
 	ssp.PackageTimestamp = ts
 
@@ -304,7 +304,8 @@ func (s *APIParser) ParseDownloadUrls(downloadJSON string) ([]DownloadURL, error
 	}
 
 	downloadUrls := v.GetArray("downloadUrls")
-	for _, e := range downloadUrls {
+	for _, url := range downloadUrls {
+		e := url
 		if e.Exists() {
 			part := e.GetInt("part")
 			url := string(e.GetStringBytes("url"))

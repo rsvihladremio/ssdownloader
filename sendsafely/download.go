@@ -35,7 +35,7 @@ type PartRequests struct {
 	EndSegment   int
 }
 
-// FileSizeCheck this is to help us be aware of future patterns in the sendsafley api, often it will return a different size
+// FileSizeCheck this is to help us be aware of future patterns in the sendsafely api, often it will return a different size
 // than it actually encountered in reality, these files are so far always usable so we are just going to log the difference
 func FileSizeCheck(fileName string, fileSize int64) error {
 	fi, err := os.Stat(fileName)
@@ -51,7 +51,7 @@ func FileSizeCheck(fileName string, fileSize int64) error {
 
 func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCode string, c config.Config, subDirToDownload string, verbose bool) (outDir string, invalidFiles []string, err error) {
 	client := NewClient(c.SsAPIKey, c.SsAPISecret, verbose)
-	p, err := client.RetrievePackgeByID(packageID)
+	p, err := client.RetrievePackageByID(packageID)
 	if err != nil {
 		return "", []string{}, err
 	}
@@ -114,7 +114,8 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 		var fileNames []string
 		var failedFiles []string
 		segmentRequestInformation := calculateExecutionCalls(parts)
-		for _, segment := range segmentRequestInformation {
+		for _, s := range segmentRequestInformation {
+			segment := s
 			start := segment.StartSegment
 			end := segment.EndSegment
 
@@ -127,7 +128,7 @@ func DownloadFilesFromPackage(d *downloader.GenericDownloader, packageID, keyCod
 			)
 			if err != nil {
 				reporting.AddFailed()
-				slog.Error("while attemping to get the download url we encountered an error, skipping file", "file_name", fileName, "error_msg", err)
+				slog.Error("while attempting to get the download url we encountered an error, skipping file", "file_name", fileName, "error_msg", err)
 				continue
 			}
 			for i := range urls {
