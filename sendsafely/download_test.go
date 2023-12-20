@@ -271,6 +271,50 @@ func TestSkipFilesOnDownload(t *testing.T) {
 	}
 }
 
+func TestSkipFilesOnDownloadWithOnlyOneSkip(t *testing.T) {
+	expectedKeyCode := "keyCode"
+	expectedPackageID := "packageID1213"
+
+	a := DownloadArgs{
+		DownloadDir:      t.TempDir(),
+		KeyCode:          expectedKeyCode,
+		PackageID:        expectedPackageID,
+		Verbose:          false,
+		SubDirToDownload: filepath.Join(t.TempDir(), "testpackages"),
+		MaxFileSizeByte:  1000000000,
+		SkipList:         []string{"fileID3"},
+	}
+
+	mockClient := &MockClient{}
+	p := Package{}
+	p.ServerSecret = "serverSecretPassword"
+
+	p.Files = []File{
+		{FileID: "fileID1", FileName: "filename1.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID2", FileName: "filename2.txt", Parts: 1, FileSize: 10},
+		{FileID: "fileID3", FileName: "filename3.txt", Parts: 1, FileSize: 10},
+	}
+	mockClient.RetrieveByPackagePackage = p
+	downloadURL := DownloadURL{}
+	downloadURL.URL = "http://localhost:1999/filename1.txt"
+	downloadURL.Part = 0
+	mockClient.GetDownloadUrlsForFileDownloadUrls = []DownloadURL{downloadURL}
+	mockDownloader := &MockDownloader{}
+	mockDownloader.Pass = p.ServerSecret
+	mockDownloader.KeyCode = expectedKeyCode
+	mockDownloader.SubDirToDownload = a.SubDirToDownload
+	_, invalidFiles, err := DownloadFilesFromPackage(mockClient, mockDownloader, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(invalidFiles) > 0 {
+		t.Errorf("expected no invalid files but had %v", len(invalidFiles))
+	}
+	if len(mockDownloader.FileNames) != 2 {
+		t.Errorf("expected 2 entries but had %v: output %#v", len(mockDownloader.FileNames), mockDownloader.FileNames)
+	}
+}
+
 func TestSkipFilesOverLimit(t *testing.T) {
 	expectedKeyCode := "keyCode"
 	expectedPackageID := "packageID1213"

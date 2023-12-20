@@ -23,6 +23,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/rsvihladremio/ssdownloader/downloader"
 	"github.com/rsvihladremio/ssdownloader/futils"
@@ -56,6 +57,15 @@ type DownloadArgs struct {
 	MaxFileSizeByte  int64
 	SkipList         []string
 	Verbose          bool
+}
+
+func SkipFile(skipList []string, fileID string) bool {
+	for _, skipFile := range skipList {
+		if skipFile == fileID {
+			return true
+		}
+	}
+	return false
 }
 
 func DownloadFilesFromPackage(
@@ -100,20 +110,18 @@ func DownloadFilesFromPackage(
 			return "", []string{}, fmt.Errorf("unable to create download dir '%v' due to error '%v'", configDir, err)
 		}
 	}
-
+	var fileIDs []string
+	for _, f := range p.Files {
+		fileIDs = append(fileIDs, f.FileID)
+	}
+	if len(fileIDs) > 0 {
+		slog.Info("found files in package", "num-files", len(fileIDs), "file-ids", strings.Join(fileIDs, ","))
+	}
 	for _, f := range p.Files {
 		fileID := f.FileID
-		var shouldSkip bool
-		for _, skipFile := range fileIDListToSkip {
-			skipFileCopy := skipFile
-			fileIDCopy := fileID
-			if fileIDCopy == skipFileCopy {
-				slog.Info("skipping file id as requested", "fileID", fileIDCopy)
-				shouldSkip = true
-				break
-			}
-		}
-		if shouldSkip {
+		slog.Info("file in package", "fileID", fileID)
+		if SkipFile(fileIDListToSkip, fileID) {
+			slog.Info("skipping file id in package as requested", "fileID", fileID, "packageID", packageID, "skip-list", strings.Join(fileIDListToSkip, ","))
 			continue
 		}
 		fileSize := f.FileSize
