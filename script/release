@@ -11,6 +11,9 @@ GIT_SHA=`git rev-parse --short HEAD`
 VERSION=$1
 LDFLAGS="-X github.com/rsvihladremio/ssdownloader/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/ssdownloader/cmd.Version=$VERSION"
 
+git tag $VERSION
+git push origin $VERSION
+
 echo "Cleaning bin folder…"
 date "+%H:%M:%S"
 ./script/clean

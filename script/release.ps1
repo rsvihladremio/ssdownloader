@@ -11,6 +11,9 @@ Set-Location "$PSScriptRoot\.."
 $GIT_SHA=@(git rev-parse --short HEAD)
 $LDFLAGS="-X github.com/rsvihladremio/ssdownloader/cmd.GitSha=$GIT_SHA -X github.com/rsvihladremio/ssdownloader/cmd.Version=$VERSION"
 
+git tag $VERSION
+git push origin $VERSION
+
 Write-Output "Cleaning bin folder"
 Get-Date
 .\script\clean
