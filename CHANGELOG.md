@@ -1,6 +1,12 @@
 # Changelog
 
-## [0.4.9] - 2023-12-20
+## [0.4.11] - 2024-04-23
+
+### Fixed
+
+* golang.org/x/net from 0.19.0 to 0.23.0 (#44)
+
+## [0.4.10] - 2023-12-20
 
 ### Added 
 
@@ -142,6 +148,7 @@
 ### Added
 - can download via links, but does not support the ticket functionality yet. Use at your own risk!
 
+[0.4.11]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.10...v0.4.11
 [0.4.10]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.8...v0.4.9
 [0.4.8]: https://github.com/rsvihladremio/ssdownloader/compare/v0.4.7...v0.4.8
