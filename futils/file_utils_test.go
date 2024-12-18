@@ -18,7 +18,6 @@
 package futils
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,14 +34,14 @@ func TestIfNotExists(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !exists {
-		t.Errorf(fmt.Sprintf("file %v does not exist", fileName))
+		t.Errorf("file %v does not exist", fileName)
 	}
-
-	exists, err = FileExists(fileName + "1")
+	incorrectFileName := "notFindable"
+	exists, err = FileExists(incorrectFileName)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if exists {
-		t.Errorf(fmt.Sprintf("file %v does exist and should not", fileName+"1"))
+		t.Errorf("file %v does exist and should not", incorrectFileName)
 	}
 }

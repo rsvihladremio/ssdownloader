@@ -80,7 +80,7 @@ func Save(c Config, cfgFile string) (string, error) {
 	_, err = os.Stat(cleanedConfigFile)
 	if err != nil && errors.Is(err, os.ErrNotExist) {
 		configDir := filepath.Dir(cleanedConfigFile)
-		err = os.MkdirAll(configDir, os.ModePerm)
+		err = os.MkdirAll(configDir, 0700)
 		if err != nil {
 			return "", fmt.Errorf("unable to create configuration dir '%v' due to error '%v'", configDir, err)
 		}

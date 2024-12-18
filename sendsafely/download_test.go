@@ -134,7 +134,7 @@ type MockClient struct {
 	GetDownloadUrlsForFileDownloadUrls []DownloadURL
 	PackageIDs                         []string
 	Packages                           []Package
-	FileIds                            []string
+	FileIDs                            []string
 	KeyCodes                           []string
 	Starts                             []int
 	Ends                               []int
@@ -147,7 +147,7 @@ func (m *MockClient) RetrievePackageByID(packageID string) (Package, error) {
 
 func (m *MockClient) GetDownloadUrlsForFile(p Package, fileID, keyCode string, start, end int) ([]DownloadURL, error) {
 	m.Packages = append(m.Packages, p)
-	m.FileIds = append(m.FileIds, fileID)
+	m.FileIDs = append(m.FileIDs, fileID)
 	m.KeyCodes = append(m.KeyCodes, keyCode)
 	m.Starts = append(m.Starts, start)
 	m.Ends = append(m.Ends, end)
