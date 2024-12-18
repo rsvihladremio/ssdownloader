@@ -47,7 +47,7 @@ ssdownloader init
 > (zendesk token): 3jkljf
 `,
 
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 
 		if C.SsAPIKey == "" {
 			fmt.Print("(sendsafely api key):")

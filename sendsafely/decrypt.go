@@ -53,7 +53,7 @@ func DecryptPart(filePart, serverSecret, keyCode string) (string, error) {
 	password := serverSecret + keyCode
 	firstTimeCalled := true
 
-	var prompt = func(keys []openpgp.Key, symmetric bool) ([]byte, error) {
+	var prompt = func(_ []openpgp.Key, _ bool) ([]byte, error) {
 		if firstTimeCalled {
 			firstTimeCalled = false
 			return []byte(password), nil

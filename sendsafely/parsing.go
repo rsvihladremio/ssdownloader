@@ -51,7 +51,7 @@ type Package struct {
 	PackageID        string
 	PackageCode      string
 	Files            []File
-	DirectoryIds     []string
+	DirectoryIDs     []string
 	State            string
 	PackageTimestamp time.Time
 	Response         string
@@ -166,7 +166,7 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 	ssp.ServerSecret = string(serverSecret.GetStringBytes())
 
 	// looping through the id values for files
-	var fileIds []File
+	var fileIDs []File
 	filesArray := v.GetArray("files")
 	for i, e := range filesArray {
 		fileElement := e.Get("fileId")
@@ -218,7 +218,7 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 		if err != nil {
 			return Package{}, fmt.Errorf("unable to convert fileSize field with value '%v' into int due to error '%v'", string(fileSize.GetStringBytes()), err)
 		}
-		fileIds = append(fileIds, File{
+		fileIDs = append(fileIDs, File{
 			FileID:          string(fileElement.GetStringBytes()),
 			FileName:        string(fileName.GetStringBytes()),
 			FileSize:        fileSizeInt,
@@ -229,10 +229,10 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 			FileVersion:     string(fileVersion.GetStringBytes()),
 		})
 	}
-	ssp.Files = fileIds
+	ssp.Files = fileIDs
 
 	// looping through the id values for directories
-	var directoryIds []string
+	var directoryIDs []string
 	directoriesArray := v.GetArray("directories")
 	for i, e := range directoriesArray {
 		// this is the only value we are interested in
@@ -240,9 +240,9 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 		if !directoryElement.Exists() {
 			return Package{}, fmt.Errorf("missing id in the %v element of the directories array (indexed at 1)", i+1)
 		}
-		directoryIds = append(directoryIds, string(directoryElement.GetStringBytes()))
+		directoryIDs = append(directoryIDs, string(directoryElement.GetStringBytes()))
 	}
-	ssp.DirectoryIds = directoryIds
+	ssp.DirectoryIDs = directoryIDs
 
 	// this is the package state, we may or may not need this, at minimum it should be useful for logging
 	state := v.Get("state")

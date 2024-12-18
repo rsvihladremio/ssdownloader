@@ -123,25 +123,25 @@ func TestParsingPackage(t *testing.T) {
 		t.Errorf("unexpected package code %v", p.PackageCode)
 	}
 
-	lenFileIds := len(p.Files)
-	if lenFileIds != 1 {
-		t.Errorf("was expected 1 element but found %v", lenFileIds)
+	lenFileIDs := len(p.Files)
+	if lenFileIDs != 1 {
+		t.Errorf("was expected 1 element but found %v", lenFileIDs)
 	}
 
-	if lenFileIds > 0 {
+	if lenFileIDs > 0 {
 		if p.Files[0].FileID != "abcfile" {
 			t.Errorf("was expected abcfile but found %v", p.Files[0].FileID)
 		}
 	}
 
-	lenDirIds := len(p.DirectoryIds)
-	if lenDirIds != 1 {
-		t.Errorf("was expected 1 element but found %v", lenDirIds)
+	lenDirIDs := len(p.DirectoryIDs)
+	if lenDirIDs != 1 {
+		t.Errorf("was expected 1 element but found %v", lenDirIDs)
 	}
 
-	if lenDirIds > 0 {
-		if p.DirectoryIds[0] != "abcdir" {
-			t.Errorf("was expected abcfile but found %v", p.DirectoryIds[0])
+	if lenDirIDs > 0 {
+		if p.DirectoryIDs[0] != "abcdir" {
+			t.Errorf("was expected abcfile but found %v", p.DirectoryIDs[0])
 		}
 	}
 

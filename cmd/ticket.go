@@ -54,7 +54,7 @@ var ticketCmd = &cobra.Command{
 
 		`,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		SetVerbosity()
 		d := downloader.NewGenericDownloader(DownloadBufferSize)
 		password := ""

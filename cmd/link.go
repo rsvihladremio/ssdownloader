@@ -38,7 +38,7 @@ var linkCmd = &cobra.Command{
 	ssdownloader link "https://sendsafely.tester.com/receive/?thread=MYTHREAD&packageCode=MYPKGCODE#keyCode=MYKEYCODE"
 `,
 	Args: cobra.ExactArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		SetVerbosity()
 		if C.SsAPIKey == "" {
 			slog.Error("ss-api-key is not set and this is required")
