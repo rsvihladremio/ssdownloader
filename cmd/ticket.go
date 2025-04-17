@@ -76,7 +76,7 @@ var ticketCmd = &cobra.Command{
 		var commentLinkTuples []zendesk.CommentTextWithLink
 		var attachments []zendesk.Attachment
 		emptyString := ""
-		var nextPage *string = &emptyString
+		nextPage := &emptyString
 
 		for nextPage != nil {
 			var commentResults []zendesk.CommentTextWithLink

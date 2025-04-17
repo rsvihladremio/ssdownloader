@@ -103,13 +103,13 @@ func ParseLink(inputURL string) (Parts, error) {
 	}
 	// search the query parameters for packageCode and thread
 	query := u.Query()
-	if !(query.Has("packageCode") || query.Has("packagecode")) {
+	if !query.Has("packageCode") && !query.Has("packagecode") {
 		return Parts{}, PackageCodeIsMissingErr{InputURL: inputURL}
 	}
 	// for whatever reason keyCode is stored as a fragment, this is a bit tricker but we know what it starts with
 	// however, this is the most fragile part and if the URL scheme varies a bit this will break badly
 	keyCodeRaw := u.Fragment
-	if !(strings.HasPrefix(keyCodeRaw, "keyCode=") || strings.HasPrefix(keyCodeRaw, "keycode=")) {
+	if !strings.HasPrefix(keyCodeRaw, "keyCode=") && !strings.HasPrefix(keyCodeRaw, "keycode=") {
 		return Parts{}, KeyCodeIsMissingErr{
 			InputURL: inputURL,
 			KeyCode:  keyCodeRaw,

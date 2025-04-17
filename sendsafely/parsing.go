@@ -141,9 +141,10 @@ func (s *APIParser) ParsePackage(originalPackageID, packageJSON string) (Package
 		if messageValue.Exists() {
 			message = string(messageValue.GetStringBytes())
 		}
-		if response == "UNKNOWN_PACKAGE" {
+		switch response {
+		case "UNKNOWN_PACKAGE":
 			return Package{}, fmt.Errorf("unable to find package %v as it is likely expired", originalPackageID)
-		} else if response == "AUTHENTICATION_FAILED" {
+		case "AUTHENTICATION_FAILED":
 			return Package{}, fmt.Errorf("failed authentication for package %v due to '%v'", originalPackageID, message)
 		}
 	}

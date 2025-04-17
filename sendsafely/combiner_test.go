@@ -169,7 +169,11 @@ func TestNoOpCombining(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error making dir %v %v", dirToGenerate, err)
 	}
-	defer os.RemoveAll(dirToGenerate)
+	defer func() {
+		if err := os.RemoveAll(dirToGenerate); err != nil {
+			t.Logf("unable to remove dir %v due to error %v", dirToGenerate, err)
+		}
+	}()
 	newFile := filepath.Join(dirToGenerate, "mylog.txt.1")
 	err = os.WriteFile(newFile, []byte("row 1\n"), 0644)
 	if err != nil {
